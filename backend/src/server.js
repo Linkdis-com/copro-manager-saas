@@ -50,21 +50,3 @@ app.get('/api/v1', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-```
-
-**Créer .env.example :**
-
-Dans `backend`, crée un fichier `.env.example` :
-```
-# Database
-DATABASE_URL=postgresql://user:password@host:5432/database
-
-# JWT
-JWT_SECRET=your-super-secret-key-change-this
-
-# Environment
-NODE_ENV=production
-PORT=3000
-
-# Frontend URL (for CORS)
-FRONTEND_URL=https://your-domain.com
