@@ -68,6 +68,19 @@ app.get('/check-tables', async (req, res) => {
   });
 });
 
+// Get all users (test route)
+app.get('/users', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM users');
+    res.json({
+      users: result.rows,
+      count: result.rows.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
