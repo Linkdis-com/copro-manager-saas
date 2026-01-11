@@ -81,6 +81,19 @@ app.get('/users', async (req, res) => {
   }
 });
 
+// Test users route
+app.get('/api/v1/users', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, email, first_name, last_name, locale, created_at FROM users');
+    res.json({
+      users: result.rows,
+      count: result.rows.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
