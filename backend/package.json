@@ -1,8 +1,6 @@
 {
   "name": "copro-manager-backend",
   "version": "1.0.0",
-  "description": "Backend API pour Copro Manager",
-  "main": "src/server.js",
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
@@ -14,7 +12,10 @@
     "dotenv": "^16.3.1",
     "pg": "^8.11.3",
     "bcrypt": "^5.1.1",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "express-validator": "^7.0.1",
+    "nodemailer": "^6.9.7",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
