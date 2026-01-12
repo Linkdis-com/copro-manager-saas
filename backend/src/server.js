@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 import authRoutes from './routes/auth.routes.js';
 import { createImmeublesTablesschema } from './migrations/create-immeubles-tables.js';
-import immeublesRoutes from './routes/immeubles.routes.js';
+//import immeublesRoutes from './routes/immeubles.routes.js';
 
 dotenv.config();
 
@@ -81,7 +81,7 @@ app.post('/migrate-immeubles', async (req, res) => {
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/immeubles', immeublesRoutes);
+//app.use('/api/v1/immeubles', immeublesRoutes);
 
 // 404 handler
 app.use((req, res) => {
