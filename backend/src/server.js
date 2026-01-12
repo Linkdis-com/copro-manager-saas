@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import pg from 'pg';
 import { initDatabase, checkTables } from './init-db.js';
+import { addRefreshTokensTable } from './migrations/add-refresh-tokens.js';
 
 dotenv.config();
 
@@ -33,7 +34,7 @@ pool.query('SELECT NOW()', (err, res) => {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'Copro Manager API is running',
+    message: 'Copro Manager API',
     timestamp: new Date().toISOString()
   });
 });
@@ -46,17 +47,10 @@ app.get('/api/v1', (req, res) => {
     endpoints: {
       health: '/health',
       api: '/api/v1',
-      initDb: '/init-db',
-      checkTables: '/check-tables'
+      checkTables: '/check-tables',
+      getUsers: '/api/v1/users'
     }
   });
-});
-
-// Initialize database route (TEMPORARY - for setup only)
-app.post('/init-db', async (req, res) => {
-  console.log('🔧 Initializing database...');
-  const result = await initDatabase(pool);
-  res.json(result);
 });
 
 // Check tables route
@@ -69,19 +63,6 @@ app.get('/check-tables', async (req, res) => {
 });
 
 // Get all users (test route)
-app.get('/users', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM users');
-    res.json({
-      users: result.rows,
-      count: result.rows.length
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Test users route
 app.get('/api/v1/users', async (req, res) => {
   try {
     const result = await pool.query('SELECT id, email, first_name, last_name, locale, created_at FROM users');
@@ -92,6 +73,13 @@ app.get('/api/v1/users', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Run migration route (TEMPORARY)
+app.post('/run-migration', async (req, res) => {
+  console.log('🔧 Running migration: add refresh_tokens table...');
+  const result = await addRefreshTokensTable(pool);
+  res.json(result);
 });
 
 // Start server
