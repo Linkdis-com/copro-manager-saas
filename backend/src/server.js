@@ -75,6 +75,7 @@ app.post('/migrate-immeubles', async (req, res) => {
 // API Routes
 app.use('/api/v1/auth', authRoutes);
 
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
