@@ -1,14 +1,8 @@
 import bcrypt from 'bcrypt';
-import pg from 'pg';
+import pool from '../config/database.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
 import { validateRegistration, validateLogin } from '../utils/validators.js';
 
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false
-  } : false
-});
 
 // INSCRIPTION (Register)
 export async function register(req, res) {
