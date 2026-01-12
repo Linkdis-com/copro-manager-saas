@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import pg from 'pg';
 import authRoutes from './routes/auth.routes.js';
+import { createImmeublesTablesschema } from './migrations/create-immeubles-tables.js';
 
 dotenv.config();
 
@@ -62,6 +63,13 @@ app.get('/api/v1', (req, res) => {
       }
     }
   });
+});
+
+// Temporary: Migration endpoint
+app.post('/migrate-immeubles', async (req, res) => {
+  console.log('🔧 Running migration: create immeubles tables...');
+  const result = await createImmeublesTablesschema();
+  res.json(result);
 });
 
 // API Routes
