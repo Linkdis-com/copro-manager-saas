@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 import authRoutes from './routes/auth.routes.js';
 import { createImmeublesTablesschema } from './migrations/create-immeubles-tables.js';
+import immeublesRoutes from './routes/immeubles.routes.js';
 
 dotenv.config();
 
@@ -48,7 +49,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API info route
 app.get('/api/v1', (req, res) => {
   res.json({
     name: 'Copro Manager API',
@@ -60,6 +60,13 @@ app.get('/api/v1', (req, res) => {
         register: 'POST /api/v1/auth/register',
         login: 'POST /api/v1/auth/login',
         profile: 'GET /api/v1/auth/me (protected)'
+      },
+      immeubles: {
+        list: 'GET /api/v1/immeubles (protected)',
+        get: 'GET /api/v1/immeubles/:id (protected)',
+        create: 'POST /api/v1/immeubles (protected)',
+        update: 'PATCH /api/v1/immeubles/:id (protected)',
+        delete: 'DELETE /api/v1/immeubles/:id (protected)'
       }
     }
   });
@@ -74,7 +81,7 @@ app.post('/migrate-immeubles', async (req, res) => {
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
-
+app.use('/api/v1/immeubles', immeublesRoutes);
 
 // 404 handler
 app.use((req, res) => {
