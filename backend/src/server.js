@@ -2,8 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import pg from 'pg';
-import { initDatabase, checkTables } from './init-db.js';
-import { addRefreshTokensTable } from './migrations/add-refresh-tokens.js';
+import { checkTables } from './init-db.js';
+import authRoutes from './routes/auth.routes.js';
 
 dotenv.config();
 
@@ -45,10 +45,12 @@ app.get('/api/v1', (req, res) => {
     message: 'Copro Manager API v1',
     version: '1.0.0',
     endpoints: {
-      health: '/health',
-      api: '/api/v1',
-      checkTables: '/check-tables',
-      getUsers: '/api/v1/users'
+      health: 'GET /health',
+      auth: {
+        register: 'POST /api/v1/auth/register',
+        login: 'POST /api/v1/auth/login',
+        profile: 'GET /api/v1/auth/me (protected)'
+      }
     }
   });
 });
@@ -62,28 +64,20 @@ app.get('/check-tables', async (req, res) => {
   });
 });
 
-// Get all users (test route)
-app.get('/api/v1/users', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT id, email, first_name, last_name, locale, created_at FROM users');
-    res.json({
-      users: result.rows,
-      count: result.rows.length
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// Authentication routes
+app.use('/api/v1/auth', authRoutes);
 
-// Run migration route (TEMPORARY)
-app.post('/run-migration', async (req, res) => {
-  console.log('🔧 Running migration: add refresh_tokens table...');
-  const result = await addRefreshTokensTable(pool);
-  res.json(result);
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not found',
+    message: `Route ${req.method} ${req.path} not found`
+  });
 });
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🔐 Auth endpoints available at /api/v1/auth`);
 });
