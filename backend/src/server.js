@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 import authRoutes from './routes/auth.routes.js';
 import immeublesRoutes from './routes/immeubles.routes.js';
+import { createTransactionsTables } from './migrations/create-transactions-tables.js';
+
 
 dotenv.config();
 
@@ -154,6 +156,13 @@ app.get('/api/v1', (req, res) => {
   });
 });
 
+
+// Temporary: Migration endpoint
+app.post('/migrate-transactions', async (req, res) => {
+  console.log('🔧 Running migration: create transactions tables...');
+  const result = await createTransactionsTables();
+  res.json(result);
+});
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
