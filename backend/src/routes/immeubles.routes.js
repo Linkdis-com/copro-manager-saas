@@ -11,6 +11,7 @@ import proprietairesRoutes from './proprietaires.routes.js';
 import fournisseursRoutes from './fournisseurs.routes.js';
 import facturesRoutes from './factures.routes.js';
 import transactionsRoutes from './transactions.routes.js';
+import locatairesRoutes from './locataires.routes.js';
 
 const router = express.Router();
 
@@ -32,5 +33,8 @@ router.use('/:immeubleId/fournisseurs', fournisseursRoutes);
 router.use('/:immeubleId/factures', facturesRoutes);
 // Routes nested: transactions d'un immeuble
 router.use('/:immeubleId/transactions', transactionsRoutes);
+// Routes nested: locataires d'un immeuble
+router.use('/:immeubleId/locataires', locatairesRoutes);
+```
 
 export default router;
