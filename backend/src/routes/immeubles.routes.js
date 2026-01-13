@@ -9,6 +9,7 @@ import {
 import { authenticate } from '../middleware/auth.js';
 import proprietairesRoutes from './proprietaires.routes.js';
 import fournisseursRoutes from './fournisseurs.routes.js';
+import facturesRoutes from './factures.routes.js';
 
 const router = express.Router();
 
@@ -26,5 +27,7 @@ router.delete('/:id', deleteImmeuble);
 router.use('/:immeubleId/proprietaires', proprietairesRoutes);
 // Routes nested: Fournisseurs d'un immeuble
 router.use('/:immeubleId/fournisseurs', fournisseursRoutes);
+// Routes nested: Factures d'un immeuble
+router.use('/:immeubleId/factures', facturesRoutes);
 
 export default router;
