@@ -5,6 +5,7 @@ import pg from 'pg';
 import authRoutes from './routes/auth.routes.js';
 import immeublesRoutes from './routes/immeubles.routes.js';
 import { createLocatairesTables } from './migrations/create-locataires-tables.js';
+import { upgradeDecomptesAdvanced } from './migrations/upgrade-decomptes-advanced.js';
 
 dotenv.config();
 
@@ -199,6 +200,13 @@ app.get('/api/v1', (req, res) => {
   });
 });
 
+
+// Temporary: Advanced decomptes migration endpoint
+app.post('/migrate-decomptes-advanced', async (req, res) => {
+  console.log('🔧 Running advanced decomptes migration...');
+  const result = await upgradeDecomptesAdvanced();
+  res.json(result);
+});
 
 // Temporary: Migration endpoint
 app.post('/migrate-locataires', async (req, res) => {
