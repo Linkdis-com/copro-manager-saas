@@ -8,6 +8,7 @@ import {
 } from '../controllers/immeubles.controller.js';
 import { authenticate } from '../middleware/auth.js';
 import proprietairesRoutes from './proprietaires.routes.js';
+import fournisseursRoutes from './fournisseurs.routes.js';
 
 const router = express.Router();
 
@@ -23,5 +24,7 @@ router.delete('/:id', deleteImmeuble);
 
 // Routes nested: Propriétaires d'un immeuble
 router.use('/:immeubleId/proprietaires', proprietairesRoutes);
+// Routes nested: Fournisseurs d'un immeuble
+router.use('/:immeubleId/fournisseurs', fournisseursRoutes);
 
 export default router;
