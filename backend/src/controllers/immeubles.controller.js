@@ -78,7 +78,11 @@ export async function createImmeuble(req, res) {
     nombreAppartements,
     chargesMensuelles = 0,
     datePrelevementCharges = 5,
-    seuilTresorerieMin = 1000
+    seuilTresorerieMin = 1000,
+    region = 'brussels',
+    modeComptageEau = 'divisionnaire',
+    tarifEauM3 = 5.85,
+    fournisseurEau = 'VIVAQUA'
   } = req.body;
 
   // Validation
@@ -93,6 +97,24 @@ export async function createImmeuble(req, res) {
     return res.status(400).json({ 
       error: 'Validation error',
       message: 'nombreAppartements must be at least 1' 
+    });
+  }
+
+  // Validation région
+  const validRegions = ['brussels', 'wallonia', 'flanders'];
+  if (!validRegions.includes(region)) {
+    return res.status(400).json({
+      error: 'Validation error',
+      message: `region must be one of: ${validRegions.join(', ')}`
+    });
+  }
+
+  // Validation mode comptage eau
+  const validModes = ['collectif', 'divisionnaire', 'individuel'];
+  if (!validModes.includes(modeComptageEau)) {
+    return res.status(400).json({
+      error: 'Validation error',
+      message: `modeComptageEau must be one of: ${validModes.join(', ')}`
     });
   }
 
@@ -144,13 +166,15 @@ export async function createImmeuble(req, res) {
       `INSERT INTO immeubles (
         user_id, nom, adresse, code_postal, ville, pays,
         nombre_appartements, charges_mensuelles, 
-        date_prelevement_charges, seuil_tresorerie_min
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        date_prelevement_charges, seuil_tresorerie_min,
+        region, mode_comptage_eau, tarif_eau_m3, fournisseur_eau
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *`,
       [
         req.user.id, nom, adresse, codePostal, ville, pays,
         nombreAppartements, chargesMensuelles,
-        datePrelevementCharges, seuilTresorerieMin
+        datePrelevementCharges, seuilTresorerieMin,
+        region, modeComptageEau, tarifEauM3, fournisseurEau
       ]
     );
 
@@ -190,8 +214,34 @@ export async function updateImmeuble(req, res) {
     nombreAppartements,
     chargesMensuelles,
     datePrelevementCharges,
-    seuilTresorerieMin
+    seuilTresorerieMin,
+    region,
+    modeComptageEau,
+    tarifEauM3,
+    fournisseurEau
   } = req.body;
+
+  // Validation région si fournie
+  if (region) {
+    const validRegions = ['brussels', 'wallonia', 'flanders'];
+    if (!validRegions.includes(region)) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: `region must be one of: ${validRegions.join(', ')}`
+      });
+    }
+  }
+
+  // Validation mode comptage eau si fourni
+  if (modeComptageEau) {
+    const validModes = ['collectif', 'divisionnaire', 'individuel'];
+    if (!validModes.includes(modeComptageEau)) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: `modeComptageEau must be one of: ${validModes.join(', ')}`
+      });
+    }
+  }
 
   try {
     // Vérifier que l'immeuble appartient à l'utilisateur
@@ -251,13 +301,18 @@ export async function updateImmeuble(req, res) {
         charges_mensuelles = COALESCE($7, charges_mensuelles),
         date_prelevement_charges = COALESCE($8, date_prelevement_charges),
         seuil_tresorerie_min = COALESCE($9, seuil_tresorerie_min),
+        region = COALESCE($10, region),
+        mode_comptage_eau = COALESCE($11, mode_comptage_eau),
+        tarif_eau_m3 = COALESCE($12, tarif_eau_m3),
+        fournisseur_eau = COALESCE($13, fournisseur_eau),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $10 AND user_id = $11
+      WHERE id = $14 AND user_id = $15
       RETURNING *`,
       [
         nom, adresse, codePostal, ville, pays,
         nombreAppartements, chargesMensuelles,
         datePrelevementCharges, seuilTresorerieMin,
+        region, modeComptageEau, tarifEauM3, fournisseurEau,
         id, req.user.id
       ]
     );
