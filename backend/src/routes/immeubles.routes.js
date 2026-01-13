@@ -25,16 +25,11 @@ router.post('/', createImmeuble);
 router.patch('/:id', updateImmeuble);
 router.delete('/:id', deleteImmeuble);
 
-// Routes nested: Propriétaires d'un immeuble
+// Routes nested
 router.use('/:immeubleId/proprietaires', proprietairesRoutes);
-// Routes nested: Fournisseurs d'un immeuble
 router.use('/:immeubleId/fournisseurs', fournisseursRoutes);
-// Routes nested: Factures d'un immeuble
 router.use('/:immeubleId/factures', facturesRoutes);
-// Routes nested: transactions d'un immeuble
 router.use('/:immeubleId/transactions', transactionsRoutes);
-// Routes nested: locataires d'un immeuble
 router.use('/:immeubleId/locataires', locatairesRoutes);
-```
 
 export default router;
