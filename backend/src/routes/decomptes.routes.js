@@ -14,7 +14,7 @@ const router = express.Router({ mergeParams: true });
 // Toutes les routes sont protégées
 router.use(authenticate);
 
-// Route spéciale pour récupérer les catégories traduites
+// IMPORTANT : Routes spécifiques AVANT les routes dynamiques !
 router.get('/categories', getCategories);
 
 // Routes CRUD
