@@ -48,25 +48,108 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API info route
 app.get('/api/v1', (req, res) => {
   res.json({
     name: 'Copro Manager API',
     version: '1.0.0',
-    description: 'API de gestion de copropriété',
+    description: 'API de gestion de copropriété pour le marché belge',
+    documentation: 'https://github.com/Linkdis-com/copro-manager-saas',
     endpoints: {
-      health: 'GET /health',
+      health: {
+        description: 'Health check',
+        method: 'GET',
+        path: '/health'
+      },
       auth: {
-        register: 'POST /api/v1/auth/register',
-        login: 'POST /api/v1/auth/login',
-        profile: 'GET /api/v1/auth/me (protected)'
+        register: {
+          method: 'POST',
+          path: '/api/v1/auth/register',
+          protected: false,
+          description: 'Créer un nouveau compte utilisateur'
+        },
+        login: {
+          method: 'POST',
+          path: '/api/v1/auth/login',
+          protected: false,
+          description: 'Se connecter et obtenir un token JWT'
+        },
+        profile: {
+          method: 'GET',
+          path: '/api/v1/auth/me',
+          protected: true,
+          description: 'Récupérer le profil de l\'utilisateur connecté'
+        }
       },
       immeubles: {
-        list: 'GET /api/v1/immeubles (protected)',
-        get: 'GET /api/v1/immeubles/:id (protected)',
-        create: 'POST /api/v1/immeubles (protected)',
-        update: 'PATCH /api/v1/immeubles/:id (protected)',
-        delete: 'DELETE /api/v1/immeubles/:id (protected)'
+        list: {
+          method: 'GET',
+          path: '/api/v1/immeubles',
+          protected: true,
+          description: 'Liste tous les immeubles de l\'utilisateur'
+        },
+        get: {
+          method: 'GET',
+          path: '/api/v1/immeubles/:id',
+          protected: true,
+          description: 'Détails d\'un immeuble spécifique'
+        },
+        create: {
+          method: 'POST',
+          path: '/api/v1/immeubles',
+          protected: true,
+          description: 'Créer un nouvel immeuble'
+        },
+        update: {
+          method: 'PATCH',
+          path: '/api/v1/immeubles/:id',
+          protected: true,
+          description: 'Modifier un immeuble'
+        },
+        delete: {
+          method: 'DELETE',
+          path: '/api/v1/immeubles/:id',
+          protected: true,
+          description: 'Archiver un immeuble'
+        }
+      },
+      proprietaires: {
+        list: {
+          method: 'GET',
+          path: '/api/v1/immeubles/:immeubleId/proprietaires',
+          protected: true,
+          description: 'Liste des propriétaires d\'un immeuble'
+        },
+        get: {
+          method: 'GET',
+          path: '/api/v1/immeubles/:immeubleId/proprietaires/:id',
+          protected: true,
+          description: 'Détails d\'un propriétaire'
+        },
+        create: {
+          method: 'POST',
+          path: '/api/v1/immeubles/:immeubleId/proprietaires',
+          protected: true,
+          description: 'Ajouter un propriétaire'
+        },
+        update: {
+          method: 'PATCH',
+          path: '/api/v1/immeubles/:immeubleId/proprietaires/:id',
+          protected: true,
+          description: 'Modifier un propriétaire'
+        },
+        delete: {
+          method: 'DELETE',
+          path: '/api/v1/immeubles/:immeubleId/proprietaires/:id',
+          protected: true,
+          description: 'Désactiver un propriétaire'
+        }
       }
+    },
+    stats: {
+      totalEndpoints: 14,
+      authRequired: 11,
+      public: 3
     }
   });
 });
