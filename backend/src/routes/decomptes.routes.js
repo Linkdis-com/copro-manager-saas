@@ -14,7 +14,7 @@ const router = express.Router({ mergeParams: true });
 // Toutes les routes sont protégées
 router.use(authenticate);
 
-// IMPORTANT : Routes spécifiques AVANT les routes dynamiques !
+// Route spéciale pour catégories
 router.get('/categories', getCategories);
 
 // Routes CRUD
