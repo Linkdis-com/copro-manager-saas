@@ -4,8 +4,6 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 import authRoutes from './routes/auth.routes.js';
 import immeublesRoutes from './routes/immeubles.routes.js';
-import { createTransactionsTables } from './migrations/create-transactions-tables.js';
-
 
 dotenv.config();
 
@@ -67,102 +65,140 @@ app.get('/api/v1', (req, res) => {
         register: {
           method: 'POST',
           path: '/api/v1/auth/register',
-          protected: false,
-          description: 'Créer un nouveau compte utilisateur'
+          protected: false
         },
         login: {
           method: 'POST',
           path: '/api/v1/auth/login',
-          protected: false,
-          description: 'Se connecter et obtenir un token JWT'
+          protected: false
         },
         profile: {
           method: 'GET',
           path: '/api/v1/auth/me',
-          protected: true,
-          description: 'Récupérer le profil de l\'utilisateur connecté'
+          protected: true
         }
       },
       immeubles: {
         list: {
           method: 'GET',
           path: '/api/v1/immeubles',
-          protected: true,
-          description: 'Liste tous les immeubles de l\'utilisateur'
+          protected: true
         },
         get: {
           method: 'GET',
           path: '/api/v1/immeubles/:id',
-          protected: true,
-          description: 'Détails d\'un immeuble spécifique'
+          protected: true
         },
         create: {
           method: 'POST',
           path: '/api/v1/immeubles',
-          protected: true,
-          description: 'Créer un nouvel immeuble'
+          protected: true
         },
         update: {
           method: 'PATCH',
           path: '/api/v1/immeubles/:id',
-          protected: true,
-          description: 'Modifier un immeuble'
+          protected: true
         },
         delete: {
           method: 'DELETE',
           path: '/api/v1/immeubles/:id',
-          protected: true,
-          description: 'Archiver un immeuble'
+          protected: true
         }
       },
       proprietaires: {
         list: {
           method: 'GET',
           path: '/api/v1/immeubles/:immeubleId/proprietaires',
-          protected: true,
-          description: 'Liste des propriétaires d\'un immeuble'
+          protected: true
         },
         get: {
           method: 'GET',
           path: '/api/v1/immeubles/:immeubleId/proprietaires/:id',
-          protected: true,
-          description: 'Détails d\'un propriétaire'
+          protected: true
         },
         create: {
           method: 'POST',
           path: '/api/v1/immeubles/:immeubleId/proprietaires',
-          protected: true,
-          description: 'Ajouter un propriétaire'
+          protected: true
         },
         update: {
           method: 'PATCH',
           path: '/api/v1/immeubles/:immeubleId/proprietaires/:id',
-          protected: true,
-          description: 'Modifier un propriétaire'
+          protected: true
         },
         delete: {
           method: 'DELETE',
           path: '/api/v1/immeubles/:immeubleId/proprietaires/:id',
+          protected: true
+        }
+      },
+      fournisseurs: {
+        list: {
+          method: 'GET',
+          path: '/api/v1/immeubles/:immeubleId/fournisseurs',
+          protected: true
+        },
+        create: {
+          method: 'POST',
+          path: '/api/v1/immeubles/:immeubleId/fournisseurs',
+          protected: true
+        }
+      },
+      factures: {
+        list: {
+          method: 'GET',
+          path: '/api/v1/immeubles/:immeubleId/factures',
+          protected: true
+        },
+        get: {
+          method: 'GET',
+          path: '/api/v1/immeubles/:immeubleId/factures/:id',
           protected: true,
-          description: 'Désactiver un propriétaire'
+          description: 'Facture avec répartition automatique par propriétaire'
+        },
+        create: {
+          method: 'POST',
+          path: '/api/v1/immeubles/:immeubleId/factures',
+          protected: true,
+          description: 'Crée une facture et calcule automatiquement la répartition selon les millièmes'
+        }
+      },
+      transactions: {
+        list: {
+          method: 'GET',
+          path: '/api/v1/immeubles/:immeubleId/transactions',
+          protected: true
+        },
+        stats: {
+          method: 'GET',
+          path: '/api/v1/immeubles/:immeubleId/transactions/stats',
+          protected: true,
+          description: 'Statistiques et trésorerie de l\'immeuble'
+        },
+        create: {
+          method: 'POST',
+          path: '/api/v1/immeubles/:immeubleId/transactions',
+          protected: true
         }
       }
     },
     stats: {
-      totalEndpoints: 14,
-      authRequired: 11,
+      totalEndpoints: 29,
+      authRequired: 26,
       public: 3
-    }
+    },
+    features: [
+      'Authentification JWT',
+      'Gestion multi-immeubles',
+      'Calcul automatique des millièmes',
+      'Répartition automatique des factures',
+      'Suivi de trésorerie',
+      'Gestion des propriétaires et fournisseurs'
+    ]
   });
 });
 
 
-// Temporary: Migration endpoint
-app.post('/migrate-transactions', async (req, res) => {
-  console.log('🔧 Running migration: create transactions tables...');
-  const result = await createTransactionsTables();
-  res.json(result);
-});
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
