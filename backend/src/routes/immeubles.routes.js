@@ -10,6 +10,7 @@ import { authenticate } from '../middleware/auth.js';
 import proprietairesRoutes from './proprietaires.routes.js';
 import fournisseursRoutes from './fournisseurs.routes.js';
 import facturesRoutes from './factures.routes.js';
+import transactionsRoutes from './transactions.routes.js';
 
 const router = express.Router();
 
@@ -29,5 +30,7 @@ router.use('/:immeubleId/proprietaires', proprietairesRoutes);
 router.use('/:immeubleId/fournisseurs', fournisseursRoutes);
 // Routes nested: Factures d'un immeuble
 router.use('/:immeubleId/factures', facturesRoutes);
+// Routes nested: transactions d'un immeuble
+router.use('/:immeubleId/transactions', transactionsRoutes);
 
 export default router;
