@@ -31,10 +31,9 @@ export async function authenticate(req, res, next) {
 
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, locale, email_verified FROM users WHERE id = $1',
-      [decoded.userId]
-    );
-
+  'SELECT id, email, first_name, last_name, locale, email_verified, role FROM users WHERE id = $1',
+  [decoded.userId]
+);
     if (result.rows.length === 0) {
       return res.status(401).json({ 
         error: 'User not found',
@@ -52,6 +51,8 @@ export async function authenticate(req, res, next) {
     });
   }
 }
+
+
 
 // Middleware optionnel : vérifier que l'email est vérifié
 export function requireEmailVerified(req, res, next) {

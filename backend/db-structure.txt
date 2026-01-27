@@ -1,0 +1,804 @@
+=== LISTE DES TABLES ===
+
+admin_logs
+appels_fonds
+appels_proprietaires
+billing_settings
+campaigns
+categories_charges
+compteurs_eau
+decomptes
+decomptes_details
+decomptes_locataires
+discounts
+exercices
+factures
+factures_repartition
+fournisseurs
+historique_habitants
+immeubles
+invoices
+locataires
+password_reset_tokens
+plans
+promo_codes
+proprietaires
+provisions_mensuelles
+referral_codes
+referral_tiers
+referrals
+refresh_tokens
+releves_compteurs
+repartitions_eau
+social_shares
+soldes_exercices
+subscriptions
+tarifs_eau
+tarifs_regionaux
+transactions
+transactions_proprietaires
+users
+v_compteurs_hierarchie
+
+
+=== TABLE: admin_logs ===
+┌─────────┬───────────────┬────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name   │ data_type                  │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼───────────────┼────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'          │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'admin_id'    │ 'uuid'                     │ null                     │ 'NO'        │ null                │
+│ 2       │ 'action'      │ 'character varying'        │ 100                      │ 'NO'        │ null                │
+│ 3       │ 'entity_type' │ 'character varying'        │ 50                       │ 'YES'       │ null                │
+│ 4       │ 'entity_id'   │ 'uuid'                     │ null                     │ 'YES'       │ null                │
+│ 5       │ 'details'     │ 'jsonb'                    │ null                     │ 'YES'       │ null                │
+│ 6       │ 'ip_address'  │ 'character varying'        │ 50                       │ 'YES'       │ null                │
+│ 7       │ 'user_agent'  │ 'text'                     │ null                     │ 'YES'       │ null                │
+│ 8       │ 'created_at'  │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴───────────────┴────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: appels_fonds ===
+┌─────────┬─────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬───────────────────────────────────┐
+│ (index) │ column_name     │ data_type                     │ character_maximum_length │ is_nullable │ column_default                    │
+├─────────┼─────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼───────────────────────────────────┤
+│ 0       │ 'id'            │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()'              │
+│ 1       │ 'exercice_id'   │ 'uuid'                        │ null                     │ 'NO'        │ null                              │
+│ 2       │ 'type'          │ 'character varying'           │ 20                       │ 'NO'        │ "'provision'::character varying"  │
+│ 3       │ 'numero'        │ 'integer'                     │ null                     │ 'NO'        │ null                              │
+│ 4       │ 'libelle'       │ 'character varying'           │ 255                      │ 'NO'        │ null                              │
+│ 5       │ 'date_appel'    │ 'date'                        │ null                     │ 'NO'        │ null                              │
+│ 6       │ 'date_echeance' │ 'date'                        │ null                     │ 'NO'        │ null                              │
+│ 7       │ 'montant_total' │ 'numeric'                     │ null                     │ 'NO'        │ null                              │
+│ 8       │ 'statut'        │ 'character varying'           │ 20                       │ 'YES'       │ "'en_attente'::character varying" │
+│ 9       │ 'created_at'    │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'               │
+│ 10      │ 'updated_at'    │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'               │
+└─────────┴─────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴───────────────────────────────────┘
+
+
+=== TABLE: appels_proprietaires ===
+┌─────────┬─────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬───────────────────────────────────┐
+│ (index) │ column_name             │ data_type                     │ character_maximum_length │ is_nullable │ column_default                    │
+├─────────┼─────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼───────────────────────────────────┤
+│ 0       │ 'id'                    │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()'              │
+│ 1       │ 'appel_id'              │ 'uuid'                        │ null                     │ 'NO'        │ null                              │
+│ 2       │ 'proprietaire_id'       │ 'uuid'                        │ null                     │ 'NO'        │ null                              │
+│ 3       │ 'montant_du'            │ 'numeric'                     │ null                     │ 'NO'        │ null                              │
+│ 4       │ 'montant_paye'          │ 'numeric'                     │ null                     │ 'YES'       │ '0'                               │
+│ 5       │ 'statut'                │ 'character varying'           │ 20                       │ 'YES'       │ "'en_attente'::character varying" │
+│ 6       │ 'transaction_id'        │ 'uuid'                        │ null                     │ 'YES'       │ null                              │
+│ 7       │ 'date_paiement'         │ 'date'                        │ null                     │ 'YES'       │ null                              │
+│ 8       │ 'date_derniere_relance' │ 'date'                        │ null                     │ 'YES'       │ null                              │
+│ 9       │ 'nombre_relances'       │ 'integer'                     │ null                     │ 'YES'       │ '0'                               │
+│ 10      │ 'created_at'            │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'               │
+│ 11      │ 'updated_at'            │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'               │
+└─────────┴─────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴───────────────────────────────────┘
+
+
+=== TABLE: billing_settings ===
+┌─────────┬───────────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬───────────────────────────────────┐
+│ (index) │ column_name           │ data_type                  │ character_maximum_length │ is_nullable │ column_default                    │
+├─────────┼───────────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼───────────────────────────────────┤
+│ 0       │ 'id'                  │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()'               │
+│ 1       │ 'company_name'        │ 'character varying'        │ 255                      │ 'NO'        │ "'Ma Société'::character varying" │
+│ 2       │ 'vat_number'          │ 'character varying'        │ 50                       │ 'YES'       │ null                              │
+│ 3       │ 'bce_number'          │ 'character varying'        │ 50                       │ 'YES'       │ null                              │
+│ 4       │ 'address_street'      │ 'character varying'        │ 255                      │ 'YES'       │ null                              │
+│ 5       │ 'address_postal_code' │ 'character varying'        │ 20                       │ 'YES'       │ null                              │
+│ 6       │ 'address_city'        │ 'character varying'        │ 100                      │ 'YES'       │ null                              │
+│ 7       │ 'address_country'     │ 'character varying'        │ 100                      │ 'YES'       │ "'Belgique'::character varying"   │
+│ 8       │ 'email'               │ 'character varying'        │ 255                      │ 'YES'       │ null                              │
+│ 9       │ 'phone'               │ 'character varying'        │ 50                       │ 'YES'       │ null                              │
+│ 10      │ 'website'             │ 'character varying'        │ 255                      │ 'YES'       │ null                              │
+│ 11      │ 'iban'                │ 'character varying'        │ 50                       │ 'YES'       │ null                              │
+│ 12      │ 'bic'                 │ 'character varying'        │ 20                       │ 'YES'       │ null                              │
+│ 13      │ 'bank_name'           │ 'character varying'        │ 100                      │ 'YES'       │ null                              │
+│ 14      │ 'invoice_prefix'      │ 'character varying'        │ 10                       │ 'YES'       │ "'F'::character varying"          │
+│ 15      │ 'invoice_next_number' │ 'integer'                  │ null                     │ 'YES'       │ '1'                               │
+│ 16      │ 'vat_applicable'      │ 'boolean'                  │ null                     │ 'YES'       │ 'true'                            │
+│ 17      │ 'vat_rate'            │ 'numeric'                  │ null                     │ 'YES'       │ '21.00'                           │
+│ 18      │ 'legal_mentions'      │ 'text'                     │ null                     │ 'YES'       │ null                              │
+│ 19      │ 'logo_url'            │ 'character varying'        │ 500                      │ 'YES'       │ null                              │
+│ 20      │ 'updated_at'          │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'               │
+└─────────┴───────────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴───────────────────────────────────┘
+
+
+=== TABLE: campaigns ===
+┌─────────┬───────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────────────┐
+│ (index) │ column_name       │ data_type                  │ character_maximum_length │ is_nullable │ column_default               │
+├─────────┼───────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────────────┤
+│ 0       │ 'id'              │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()'          │
+│ 1       │ 'name'            │ 'character varying'        │ 255                      │ 'NO'        │ null                         │
+│ 2       │ 'description'     │ 'text'                     │ null                     │ 'YES'       │ null                         │
+│ 3       │ 'type'            │ 'character varying'        │ 50                       │ 'NO'        │ null                         │
+│ 4       │ 'status'          │ 'character varying'        │ 20                       │ 'YES'       │ "'draft'::character varying" │
+│ 5       │ 'budget'          │ 'numeric'                  │ null                     │ 'YES'       │ null                         │
+│ 6       │ 'spent'           │ 'numeric'                  │ null                     │ 'YES'       │ '0'                          │
+│ 7       │ 'target_audience' │ 'jsonb'                    │ null                     │ 'YES'       │ null                         │
+│ 8       │ 'metrics'         │ 'jsonb'                    │ null                     │ 'YES'       │ null                         │
+│ 9       │ 'start_date'      │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                         │
+│ 10      │ 'end_date'        │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                         │
+│ 11      │ 'created_by'      │ 'uuid'                     │ null                     │ 'YES'       │ null                         │
+│ 12      │ 'created_at'      │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'          │
+│ 13      │ 'updated_at'      │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'          │
+└─────────┴───────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────────────┘
+
+
+=== TABLE: categories_charges ===
+┌─────────┬──────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name              │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼──────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'                     │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'code'                   │ 'character varying'           │ 50                       │ 'NO'        │ null                 │
+│ 2       │ 'nom_fr'                 │ 'character varying'           │ 100                      │ 'NO'        │ null                 │
+│ 3       │ 'nom_nl'                 │ 'character varying'           │ 100                      │ 'NO'        │ null                 │
+│ 4       │ 'nom_en'                 │ 'character varying'           │ 100                      │ 'NO'        │ null                 │
+│ 5       │ 'recuperable_par_defaut' │ 'boolean'                     │ null                     │ 'YES'       │ 'true'               │
+│ 6       │ 'ordre_affichage'        │ 'integer'                     │ null                     │ 'YES'       │ '0'                  │
+│ 7       │ 'created_at'             │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+└─────────┴──────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: compteurs_eau ===
+┌─────────┬─────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬───────────────────────────────────┐
+│ (index) │ column_name             │ data_type                     │ character_maximum_length │ is_nullable │ column_default                    │
+├─────────┼─────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼───────────────────────────────────┤
+│ 0       │ 'id'                    │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()'               │
+│ 1       │ 'immeuble_id'           │ 'uuid'                        │ null                     │ 'YES'       │ null                              │
+│ 2       │ 'locataire_id'          │ 'uuid'                        │ null                     │ 'YES'       │ null                              │
+│ 3       │ 'numero_compteur'       │ 'character varying'           │ 50                       │ 'NO'        │ null                              │
+│ 4       │ 'emplacement'           │ 'text'                        │ null                     │ 'YES'       │ null                              │
+│ 5       │ 'actif'                 │ 'boolean'                     │ null                     │ 'YES'       │ 'true'                            │
+│ 6       │ 'created_at'            │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'               │
+│ 7       │ 'proprietaire_id'       │ 'uuid'                        │ null                     │ 'YES'       │ null                              │
+│ 8       │ 'type_compteur'         │ 'character varying'           │ 50                       │ 'YES'       │ "'individuel'::character varying" │
+│ 9       │ 'compteur_principal_id' │ 'uuid'                        │ null                     │ 'YES'       │ null                              │
+│ 10      │ 'ordre'                 │ 'integer'                     │ null                     │ 'YES'       │ '0'                               │
+│ 11      │ 'index_precedent'       │ 'numeric'                     │ null                     │ 'YES'       │ '0'                               │
+│ 12      │ 'date_index_precedent'  │ 'date'                        │ null                     │ 'YES'       │ null                              │
+└─────────┴─────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴───────────────────────────────────┘
+
+
+=== TABLE: decomptes ===
+┌─────────┬─────────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────────────────┐
+│ (index) │ column_name                 │ data_type                     │ character_maximum_length │ is_nullable │ column_default                   │
+├─────────┼─────────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────────────────┤
+│ 0       │ 'id'                        │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()'              │
+│ 1       │ 'immeuble_id'               │ 'uuid'                        │ null                     │ 'YES'       │ null                             │
+│ 2       │ 'user_id'                   │ 'uuid'                        │ null                     │ 'YES'       │ null                             │
+│ 3       │ 'tarif_eau_id'              │ 'uuid'                        │ null                     │ 'YES'       │ null                             │
+│ 4       │ 'annee'                     │ 'integer'                     │ null                     │ 'NO'        │ null                             │
+│ 5       │ 'periode_debut'             │ 'date'                        │ null                     │ 'NO'        │ null                             │
+│ 6       │ 'periode_fin'               │ 'date'                        │ null                     │ 'NO'        │ null                             │
+│ 7       │ 'type_comptage'             │ 'character varying'           │ 20                       │ 'YES'       │ null                             │
+│ 8       │ 'facture_total_ttc'         │ 'numeric'                     │ null                     │ 'YES'       │ null                             │
+│ 9       │ 'facture_consommation_m3'   │ 'integer'                     │ null                     │ 'YES'       │ null                             │
+│ 10      │ 'facture_url'               │ 'text'                        │ null                     │ 'YES'       │ null                             │
+│ 11      │ 'total_m3_gratuits'         │ 'integer'                     │ null                     │ 'YES'       │ '0'                              │
+│ 12      │ 'total_habitants'           │ 'integer'                     │ null                     │ 'YES'       │ '0'                              │
+│ 13      │ 'statut'                    │ 'character varying'           │ 20                       │ 'YES'       │ "'brouillon'::character varying" │
+│ 14      │ 'date_calcul'               │ 'timestamp without time zone' │ null                     │ 'YES'       │ null                             │
+│ 15      │ 'date_validation'           │ 'timestamp without time zone' │ null                     │ 'YES'       │ null                             │
+│ 16      │ 'notes'                     │ 'text'                        │ null                     │ 'YES'       │ null                             │
+│ 17      │ 'created_at'                │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'              │
+│ 18      │ 'updated_at'                │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'              │
+│ 19      │ 'numero_compteur_principal' │ 'character varying'           │ 100                      │ 'YES'       │ null                             │
+│ 20      │ 'tarif_distribution'        │ 'numeric'                     │ null                     │ 'YES'       │ null                             │
+│ 21      │ 'tarif_assainissement'      │ 'numeric'                     │ null                     │ 'YES'       │ null                             │
+│ 22      │ 'redevance_fixe_annuelle'   │ 'numeric'                     │ null                     │ 'YES'       │ null                             │
+│ 23      │ 'tva_pourcent'              │ 'numeric'                     │ null                     │ 'YES'       │ '6.0'                            │
+└─────────┴─────────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────────────────┘
+
+
+=== TABLE: decomptes_details ===
+┌─────────┬─────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name     │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼─────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'            │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'decompte_id'   │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 2       │ 'categorie'     │ 'character varying'           │ 100                      │ 'NO'        │ null                 │
+│ 3       │ 'montant'       │ 'numeric'                     │ null                     │ 'NO'        │ null                 │
+│ 4       │ 'recuperable'   │ 'boolean'                     │ null                     │ 'YES'       │ 'true'               │
+│ 5       │ 'created_at'    │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 6       │ 'sous_details'  │ 'jsonb'                       │ null                     │ 'YES'       │ null                 │
+│ 7       │ 'unite'         │ 'character varying'           │ 20                       │ 'YES'       │ null                 │
+│ 8       │ 'quantite'      │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 9       │ 'prix_unitaire' │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+└─────────┴─────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: decomptes_locataires ===
+┌─────────┬──────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────────────┐
+│ (index) │ column_name              │ data_type                     │ character_maximum_length │ is_nullable │ column_default               │
+├─────────┼──────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────────────┤
+│ 0       │ 'id'                     │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()'         │
+│ 1       │ 'locataire_id'           │ 'uuid'                        │ null                     │ 'YES'       │ null                         │
+│ 2       │ 'annee'                  │ 'integer'                     │ null                     │ 'NO'        │ null                         │
+│ 3       │ 'periode_debut'          │ 'date'                        │ null                     │ 'NO'        │ null                         │
+│ 4       │ 'periode_fin'            │ 'date'                        │ null                     │ 'NO'        │ null                         │
+│ 5       │ 'charges_provisionnees'  │ 'numeric'                     │ null                     │ 'NO'        │ null                         │
+│ 6       │ 'charges_reelles'        │ 'numeric'                     │ null                     │ 'NO'        │ null                         │
+│ 7       │ 'solde'                  │ 'numeric'                     │ null                     │ 'NO'        │ null                         │
+│ 8       │ 'statut'                 │ 'character varying'           │ 20                       │ 'YES'       │ "'draft'::character varying" │
+│ 9       │ 'date_envoi'             │ 'date'                        │ null                     │ 'YES'       │ null                         │
+│ 10      │ 'notes'                  │ 'text'                        │ null                     │ 'YES'       │ null                         │
+│ 11      │ 'created_at'             │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'          │
+│ 12      │ 'updated_at'             │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'          │
+│ 13      │ 'compteur_principal_m3'  │ 'numeric'                     │ null                     │ 'YES'       │ null                         │
+│ 14      │ 'compteur_individuel_m3' │ 'numeric'                     │ null                     │ 'YES'       │ null                         │
+│ 15      │ 'eau_commune_m3'         │ 'numeric'                     │ null                     │ 'YES'       │ null                         │
+│ 16      │ 'part_eau_commune'       │ 'numeric'                     │ null                     │ 'YES'       │ null                         │
+│ 17      │ 'tarif_applique_m3'      │ 'numeric'                     │ null                     │ 'YES'       │ null                         │
+└─────────┴──────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────────────┘
+
+
+=== TABLE: discounts ===
+┌─────────┬────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name    │ data_type                  │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'           │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'user_id'      │ 'uuid'                     │ null                     │ 'NO'        │ null                │
+│ 2       │ 'type'         │ 'character varying'        │ 30                       │ 'NO'        │ null                │
+│ 3       │ 'percentage'   │ 'integer'                  │ null                     │ 'NO'        │ null                │
+│ 4       │ 'reason'       │ 'character varying'        │ 255                      │ 'YES'       │ null                │
+│ 5       │ 'valid_months' │ 'integer'                  │ null                     │ 'YES'       │ '12'                │
+│ 6       │ 'applied_at'   │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                │
+│ 7       │ 'expires_at'   │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                │
+│ 8       │ 'created_at'   │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: exercices ===
+┌─────────┬────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────────────────┐
+│ (index) │ column_name            │ data_type                     │ character_maximum_length │ is_nullable │ column_default                   │
+├─────────┼────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────────────────┤
+│ 0       │ 'id'                   │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()'             │
+│ 1       │ 'immeuble_id'          │ 'uuid'                        │ null                     │ 'NO'        │ null                             │
+│ 2       │ 'annee'                │ 'integer'                     │ null                     │ 'NO'        │ null                             │
+│ 3       │ 'date_debut'           │ 'date'                        │ null                     │ 'NO'        │ null                             │
+│ 4       │ 'date_fin'             │ 'date'                        │ null                     │ 'NO'        │ null                             │
+│ 5       │ 'statut'               │ 'character varying'           │ 20                       │ 'NO'        │ "'brouillon'::character varying" │
+│ 6       │ 'budget_previsionnel'  │ 'numeric'                     │ null                     │ 'YES'       │ '0'                              │
+│ 7       │ 'budget_fonds_reserve' │ 'numeric'                     │ null                     │ 'YES'       │ '0'                              │
+│ 8       │ 'date_cloture'         │ 'timestamp without time zone' │ null                     │ 'YES'       │ null                             │
+│ 9       │ 'cloture_par'          │ 'uuid'                        │ null                     │ 'YES'       │ null                             │
+│ 10      │ 'notes_cloture'        │ 'text'                        │ null                     │ 'YES'       │ null                             │
+│ 11      │ 'date_ag_approbation'  │ 'date'                        │ null                     │ 'YES'       │ null                             │
+│ 12      │ 'pv_ag_reference'      │ 'character varying'           │ 100                      │ 'YES'       │ null                             │
+│ 13      │ 'created_at'           │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'              │
+│ 14      │ 'updated_at'           │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'              │
+└─────────┴────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────────────────┘
+
+
+=== TABLE: factures ===
+┌─────────┬────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬────────────────────────────────┐
+│ (index) │ column_name        │ data_type                     │ character_maximum_length │ is_nullable │ column_default                 │
+├─────────┼────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼────────────────────────────────┤
+│ 0       │ 'id'               │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()'           │
+│ 1       │ 'immeuble_id'      │ 'uuid'                        │ null                     │ 'YES'       │ null                           │
+│ 2       │ 'fournisseur_id'   │ 'uuid'                        │ null                     │ 'YES'       │ null                           │
+│ 3       │ 'numero_facture'   │ 'character varying'           │ 100                      │ 'YES'       │ null                           │
+│ 4       │ 'date_facture'     │ 'date'                        │ null                     │ 'NO'        │ null                           │
+│ 5       │ 'date_echeance'    │ 'date'                        │ null                     │ 'YES'       │ null                           │
+│ 6       │ 'montant_total'    │ 'numeric'                     │ null                     │ 'NO'        │ null                           │
+│ 7       │ 'statut'           │ 'character varying'           │ 20                       │ 'YES'       │ "'pending'::character varying" │
+│ 8       │ 'mode_repartition' │ 'character varying'           │ 20                       │ 'YES'       │ "'auto'::character varying"    │
+│ 9       │ 'description'      │ 'text'                        │ null                     │ 'YES'       │ null                           │
+│ 10      │ 'fichier_url'      │ 'text'                        │ null                     │ 'YES'       │ null                           │
+│ 11      │ 'created_at'       │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'            │
+│ 12      │ 'updated_at'       │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'            │
+│ 13      │ 'exercice_id'      │ 'uuid'                        │ null                     │ 'YES'       │ null                           │
+└─────────┴────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴────────────────────────────────┘
+
+
+=== TABLE: factures_repartition ===
+┌─────────┬───────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name       │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼───────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'              │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'facture_id'      │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 2       │ 'proprietaire_id' │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 3       │ 'montant'         │ 'numeric'                     │ null                     │ 'NO'        │ null                 │
+│ 4       │ 'pourcentage'     │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 5       │ 'created_at'      │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+└─────────┴───────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: fournisseurs ===
+┌─────────┬───────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name   │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼───────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'          │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'immeuble_id' │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 2       │ 'nom'         │ 'character varying'           │ 255                      │ 'NO'        │ null                 │
+│ 3       │ 'type'        │ 'character varying'           │ 50                       │ 'YES'       │ null                 │
+│ 4       │ 'email'       │ 'character varying'           │ 255                      │ 'YES'       │ null                 │
+│ 5       │ 'telephone'   │ 'character varying'           │ 20                       │ 'YES'       │ null                 │
+│ 6       │ 'iban'        │ 'character varying'           │ 50                       │ 'YES'       │ null                 │
+│ 7       │ 'numero_tva'  │ 'character varying'           │ 50                       │ 'YES'       │ null                 │
+│ 8       │ 'tags'        │ 'ARRAY'                       │ null                     │ 'YES'       │ null                 │
+│ 9       │ 'created_at'  │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 10      │ 'updated_at'  │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+└─────────┴───────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: historique_habitants ===
+┌─────────┬────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name        │ data_type                     │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'               │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'locataire_id'     │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 2       │ 'date_debut'       │ 'date'                        │ null                     │ 'NO'        │ null                │
+│ 3       │ 'date_fin'         │ 'date'                        │ null                     │ 'YES'       │ null                │
+│ 4       │ 'nombre_habitants' │ 'integer'                     │ null                     │ 'NO'        │ null                │
+│ 5       │ 'created_at'       │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: immeubles ===
+┌─────────┬─────────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────────────────────┐
+│ (index) │ column_name                 │ data_type                     │ character_maximum_length │ is_nullable │ column_default                       │
+├─────────┼─────────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────────────────────┤
+│ 0       │ 'id'                        │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()'                 │
+│ 1       │ 'user_id'                   │ 'uuid'                        │ null                     │ 'YES'       │ null                                 │
+│ 2       │ 'nom'                       │ 'character varying'           │ 255                      │ 'NO'        │ null                                 │
+│ 3       │ 'adresse'                   │ 'text'                        │ null                     │ 'YES'       │ null                                 │
+│ 4       │ 'code_postal'               │ 'character varying'           │ 10                       │ 'YES'       │ null                                 │
+│ 5       │ 'ville'                     │ 'character varying'           │ 100                      │ 'YES'       │ null                                 │
+│ 6       │ 'pays'                      │ 'character varying'           │ 2                        │ 'YES'       │ "'BE'::character varying"            │
+│ 7       │ 'nombre_appartements'       │ 'integer'                     │ null                     │ 'NO'        │ null                                 │
+│ 8       │ 'charges_mensuelles'        │ 'numeric'                     │ null                     │ 'YES'       │ '0'                                  │
+│ 9       │ 'date_prelevement_charges'  │ 'integer'                     │ null                     │ 'YES'       │ '5'                                  │
+│ 10      │ 'seuil_tresorerie_min'      │ 'numeric'                     │ null                     │ 'YES'       │ '1000'                               │
+│ 11      │ 'archived_at'               │ 'timestamp without time zone' │ null                     │ 'YES'       │ null                                 │
+│ 12      │ 'created_at'                │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'                  │
+│ 13      │ 'updated_at'                │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'                  │
+│ 14      │ 'region'                    │ 'character varying'           │ 10                       │ 'YES'       │ "'brussels'::character varying"      │
+│ 15      │ 'mode_comptage_eau'         │ 'character varying'           │ 20                       │ 'YES'       │ "'divisionnaire'::character varying" │
+│ 16      │ 'fournisseur_eau'           │ 'character varying'           │ 50                       │ 'YES'       │ null                                 │
+│ 17      │ 'systeme_repartition'       │ 'character varying'           │ 20                       │ 'YES'       │ "'milliemes'::character varying"     │
+│ 18      │ 'numero_compteur_principal' │ 'character varying'           │ 50                       │ 'YES'       │ null                                 │
+└─────────┴─────────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────────────────────┘
+
+
+=== TABLE: invoices ===
+┌─────────┬─────────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬────────────────────────────────┐
+│ (index) │ column_name         │ data_type                  │ character_maximum_length │ is_nullable │ column_default                 │
+├─────────┼─────────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼────────────────────────────────┤
+│ 0       │ 'id'                │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()'            │
+│ 1       │ 'user_id'           │ 'uuid'                     │ null                     │ 'NO'        │ null                           │
+│ 2       │ 'subscription_id'   │ 'uuid'                     │ null                     │ 'YES'       │ null                           │
+│ 3       │ 'stripe_invoice_id' │ 'character varying'        │ 255                      │ 'YES'       │ null                           │
+│ 4       │ 'amount'            │ 'numeric'                  │ null                     │ 'NO'        │ null                           │
+│ 5       │ 'currency'          │ 'character varying'        │ 3                        │ 'YES'       │ "'EUR'::character varying"     │
+│ 6       │ 'status'            │ 'character varying'        │ 20                       │ 'NO'        │ "'pending'::character varying" │
+│ 7       │ 'paid_at'           │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                           │
+│ 8       │ 'invoice_pdf_url'   │ 'text'                     │ null                     │ 'YES'       │ null                           │
+│ 9       │ 'created_at'        │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'            │
+└─────────┴─────────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴────────────────────────────────┘
+
+
+=== TABLE: locataires ===
+┌─────────┬──────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name          │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼──────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'                 │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'immeuble_id'        │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 2       │ 'proprietaire_id'    │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 3       │ 'nom'                │ 'character varying'           │ 100                      │ 'NO'        │ null                 │
+│ 4       │ 'prenom'             │ 'character varying'           │ 100                      │ 'YES'       │ null                 │
+│ 5       │ 'email'              │ 'character varying'           │ 255                      │ 'YES'       │ null                 │
+│ 6       │ 'telephone'          │ 'character varying'           │ 20                       │ 'YES'       │ null                 │
+│ 7       │ 'date_debut_bail'    │ 'date'                        │ null                     │ 'NO'        │ null                 │
+│ 8       │ 'date_fin_bail'      │ 'date'                        │ null                     │ 'YES'       │ null                 │
+│ 9       │ 'loyer_mensuel'      │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 10      │ 'charges_mensuelles' │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 11      │ 'depot_garantie'     │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 12      │ 'actif'              │ 'boolean'                     │ null                     │ 'YES'       │ 'true'               │
+│ 13      │ 'created_at'         │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 14      │ 'updated_at'         │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 15      │ 'nombre_habitants'   │ 'integer'                     │ null                     │ 'YES'       │ '1'                  │
+└─────────┴──────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: password_reset_tokens ===
+┌─────────┬──────────────┬────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name  │ data_type                  │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼──────────────┼────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'         │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'user_id'    │ 'uuid'                     │ null                     │ 'NO'        │ null                │
+│ 2       │ 'token_hash' │ 'character varying'        │ 255                      │ 'NO'        │ null                │
+│ 3       │ 'expires_at' │ 'timestamp with time zone' │ null                     │ 'NO'        │ null                │
+│ 4       │ 'used_at'    │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                │
+│ 5       │ 'created_at' │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴──────────────┴────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: plans ===
+┌─────────┬─────────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬────────────────────────────┐
+│ (index) │ column_name         │ data_type                  │ character_maximum_length │ is_nullable │ column_default             │
+├─────────┼─────────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼────────────────────────────┤
+│ 0       │ 'id'                │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()'        │
+│ 1       │ 'code'              │ 'character varying'        │ 50                       │ 'NO'        │ null                       │
+│ 2       │ 'name'              │ 'character varying'        │ 100                      │ 'NO'        │ null                       │
+│ 3       │ 'description'       │ 'text'                     │ null                     │ 'YES'       │ null                       │
+│ 4       │ 'price_monthly'     │ 'numeric'                  │ null                     │ 'NO'        │ '0'                        │
+│ 5       │ 'price_yearly'      │ 'numeric'                  │ null                     │ 'YES'       │ 'NULL::numeric'            │
+│ 6       │ 'currency'          │ 'character varying'        │ 3                        │ 'YES'       │ "'EUR'::character varying" │
+│ 7       │ 'max_immeubles'     │ 'integer'                  │ null                     │ 'NO'        │ '1'                        │
+│ 8       │ 'max_proprietaires' │ 'integer'                  │ null                     │ 'NO'        │ '5'                        │
+│ 9       │ 'max_locataires'    │ 'integer'                  │ null                     │ 'NO'        │ '10'                       │
+│ 10      │ 'max_users'         │ 'integer'                  │ null                     │ 'NO'        │ '1'                        │
+│ 11      │ 'features'          │ 'jsonb'                    │ null                     │ 'YES'       │ "'[]'::jsonb"              │
+│ 12      │ 'is_active'         │ 'boolean'                  │ null                     │ 'YES'       │ 'true'                     │
+│ 13      │ 'sort_order'        │ 'integer'                  │ null                     │ 'YES'       │ '0'                        │
+│ 14      │ 'created_at'        │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'        │
+│ 15      │ 'updated_at'        │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'        │
+│ 16      │ 'price_per_unit'    │ 'numeric'                  │ null                     │ 'YES'       │ '0'                        │
+│ 17      │ 'is_professional'   │ 'boolean'                  │ null                     │ 'YES'       │ 'false'                    │
+│ 18      │ 'vat_rate'          │ 'numeric'                  │ null                     │ 'YES'       │ '0'                        │
+│ 19      │ 'trial_days'        │ 'integer'                  │ null                     │ 'YES'       │ '15'                       │
+└─────────┴─────────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴────────────────────────────┘
+
+
+=== TABLE: promo_codes ===
+┌─────────┬───────────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name           │ data_type                  │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼───────────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'                  │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'code'                │ 'character varying'        │ 50                       │ 'NO'        │ null                │
+│ 2       │ 'description'         │ 'text'                     │ null                     │ 'YES'       │ null                │
+│ 3       │ 'discount_type'       │ 'character varying'        │ 20                       │ 'NO'        │ null                │
+│ 4       │ 'discount_value'      │ 'numeric'                  │ null                     │ 'NO'        │ null                │
+│ 5       │ 'max_uses'            │ 'integer'                  │ null                     │ 'YES'       │ null                │
+│ 6       │ 'current_uses'        │ 'integer'                  │ null                     │ 'YES'       │ '0'                 │
+│ 7       │ 'valid_from'          │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                │
+│ 8       │ 'valid_until'         │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                │
+│ 9       │ 'min_purchase_amount' │ 'numeric'                  │ null                     │ 'YES'       │ null                │
+│ 10      │ 'applicable_plans'    │ 'jsonb'                    │ null                     │ 'YES'       │ null                │
+│ 11      │ 'is_active'           │ 'boolean'                  │ null                     │ 'YES'       │ 'true'              │
+│ 12      │ 'created_by'          │ 'uuid'                     │ null                     │ 'YES'       │ null                │
+│ 13      │ 'created_at'          │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+│ 14      │ 'updated_at'          │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴───────────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: proprietaires ===
+┌─────────┬──────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name          │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼──────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'                 │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'immeuble_id'        │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 2       │ 'nom'                │ 'character varying'           │ 100                      │ 'NO'        │ null                 │
+│ 3       │ 'prenom'             │ 'character varying'           │ 100                      │ 'YES'       │ null                 │
+│ 4       │ 'email'              │ 'character varying'           │ 255                      │ 'YES'       │ null                 │
+│ 5       │ 'telephone'          │ 'character varying'           │ 20                       │ 'YES'       │ null                 │
+│ 6       │ 'milliemes'          │ 'integer'                     │ null                     │ 'NO'        │ null                 │
+│ 7       │ 'numero_appartement' │ 'character varying'           │ 20                       │ 'YES'       │ null                 │
+│ 8       │ 'date_debut'         │ 'date'                        │ null                     │ 'YES'       │ null                 │
+│ 9       │ 'date_fin'           │ 'date'                        │ null                     │ 'YES'       │ null                 │
+│ 10      │ 'actif'              │ 'boolean'                     │ null                     │ 'YES'       │ 'true'               │
+│ 11      │ 'created_at'         │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 12      │ 'updated_at'         │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 13      │ 'nombre_habitants'   │ 'integer'                     │ null                     │ 'YES'       │ '1'                  │
+└─────────┴──────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: provisions_mensuelles ===
+┌─────────┬───────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────────────┐
+│ (index) │ column_name       │ data_type                     │ character_maximum_length │ is_nullable │ column_default               │
+├─────────┼───────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────────────┤
+│ 0       │ 'id'              │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()'          │
+│ 1       │ 'proprietaire_id' │ 'uuid'                        │ null                     │ 'YES'       │ null                         │
+│ 2       │ 'mois'            │ 'date'                        │ null                     │ 'NO'        │ null                         │
+│ 3       │ 'montant_prevu'   │ 'numeric'                     │ null                     │ 'NO'        │ null                         │
+│ 4       │ 'montant_paye'    │ 'numeric'                     │ null                     │ 'YES'       │ '0'                          │
+│ 5       │ 'date_paiement'   │ 'date'                        │ null                     │ 'YES'       │ null                         │
+│ 6       │ 'statut'          │ 'character varying'           │ 20                       │ 'YES'       │ "'prevu'::character varying" │
+│ 7       │ 'notes'           │ 'text'                        │ null                     │ 'YES'       │ null                         │
+│ 8       │ 'created_at'      │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'          │
+└─────────┴───────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────────────┘
+
+
+=== TABLE: referral_codes ===
+┌─────────┬──────────────┬────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name  │ data_type                  │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼──────────────┼────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'         │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'user_id'    │ 'uuid'                     │ null                     │ 'NO'        │ null                │
+│ 2       │ 'code'       │ 'character varying'        │ 20                       │ 'NO'        │ null                │
+│ 3       │ 'created_at' │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴──────────────┴────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: referral_tiers ===
+┌─────────┬───────────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name           │ data_type                  │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼───────────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'                  │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'min_referrals'       │ 'integer'                  │ null                     │ 'NO'        │ null                │
+│ 2       │ 'discount_percentage' │ 'integer'                  │ null                     │ 'NO'        │ null                │
+│ 3       │ 'description'         │ 'character varying'        │ 255                      │ 'YES'       │ null                │
+│ 4       │ 'created_at'          │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴───────────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: referrals ===
+┌─────────┬─────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬────────────────────────────────┐
+│ (index) │ column_name     │ data_type                  │ character_maximum_length │ is_nullable │ column_default                 │
+├─────────┼─────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼────────────────────────────────┤
+│ 0       │ 'id'            │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()'            │
+│ 1       │ 'referrer_id'   │ 'uuid'                     │ null                     │ 'NO'        │ null                           │
+│ 2       │ 'referred_id'   │ 'uuid'                     │ null                     │ 'NO'        │ null                           │
+│ 3       │ 'referral_code' │ 'character varying'        │ 20                       │ 'NO'        │ null                           │
+│ 4       │ 'status'        │ 'character varying'        │ 20                       │ 'YES'       │ "'pending'::character varying" │
+│ 5       │ 'created_at'    │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'            │
+│ 6       │ 'completed_at'  │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                           │
+└─────────┴─────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴────────────────────────────────┘
+
+
+=== TABLE: refresh_tokens ===
+┌─────────┬──────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name  │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼──────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'         │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'user_id'    │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 2       │ 'token'      │ 'character varying'           │ 500                      │ 'NO'        │ null                 │
+│ 3       │ 'expires_at' │ 'timestamp without time zone' │ null                     │ 'NO'        │ null                 │
+│ 4       │ 'created_at' │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+└─────────┴──────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: releves_compteurs ===
+┌─────────┬───────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name       │ data_type                     │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼───────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'              │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'decompte_id'     │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 2       │ 'compteur_id'     │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 3       │ 'date_releve'     │ 'date'                        │ null                     │ 'NO'        │ null                │
+│ 4       │ 'index_precedent' │ 'integer'                     │ null                     │ 'NO'        │ null                │
+│ 5       │ 'index_actuel'    │ 'integer'                     │ null                     │ 'NO'        │ null                │
+│ 6       │ 'created_at'      │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+│ 7       │ 'notes'           │ 'text'                        │ null                     │ 'YES'       │ null                │
+│ 8       │ 'updated_at'      │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'now()'             │
+│ 9       │ 'consommation'    │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+└─────────┴───────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: repartitions_eau ===
+┌─────────┬──────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name              │ data_type                     │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼──────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'                     │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'decompte_id'            │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 2       │ 'locataire_id'           │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 3       │ 'proprietaire_id'        │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 4       │ 'habitants'              │ 'integer'                     │ null                     │ 'NO'        │ null                │
+│ 5       │ 'm3_consommes'           │ 'integer'                     │ null                     │ 'NO'        │ null                │
+│ 6       │ 'm3_gratuits'            │ 'integer'                     │ null                     │ 'YES'       │ '0'                 │
+│ 7       │ 'm3_tarif_base'          │ 'integer'                     │ null                     │ 'YES'       │ '0'                 │
+│ 8       │ 'm3_tarif_confort'       │ 'integer'                     │ null                     │ 'YES'       │ '0'                 │
+│ 9       │ 'montant_eau'            │ 'numeric'                     │ null                     │ 'NO'        │ '0'                 │
+│ 10      │ 'montant_assainissement' │ 'numeric'                     │ null                     │ 'NO'        │ '0'                 │
+│ 11      │ 'montant_redevance_fixe' │ 'numeric'                     │ null                     │ 'NO'        │ '0'                 │
+│ 12      │ 'montant_tva'            │ 'numeric'                     │ null                     │ 'NO'        │ '0'                 │
+│ 13      │ 'montant_total_ttc'      │ 'numeric'                     │ null                     │ 'NO'        │ '0'                 │
+│ 14      │ 'created_at'             │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+│ 15      │ 'm3_factures'            │ 'integer'                     │ null                     │ 'YES'       │ '0'                 │
+└─────────┴──────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: social_shares ===
+┌─────────┬───────────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬────────────────────────────────┐
+│ (index) │ column_name           │ data_type                  │ character_maximum_length │ is_nullable │ column_default                 │
+├─────────┼───────────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼────────────────────────────────┤
+│ 0       │ 'id'                  │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()'            │
+│ 1       │ 'user_id'             │ 'uuid'                     │ null                     │ 'NO'        │ null                           │
+│ 2       │ 'platform'            │ 'character varying'        │ 30                       │ 'NO'        │ null                           │
+│ 3       │ 'status'              │ 'character varying'        │ 20                       │ 'YES'       │ "'pending'::character varying" │
+│ 4       │ 'screenshot_filename' │ 'character varying'        │ 255                      │ 'YES'       │ null                           │
+│ 5       │ 'admin_notes'         │ 'text'                     │ null                     │ 'YES'       │ null                           │
+│ 6       │ 'verified_by'         │ 'uuid'                     │ null                     │ 'YES'       │ null                           │
+│ 7       │ 'verified_at'         │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                           │
+│ 8       │ 'created_at'          │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'            │
+└─────────┴───────────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴────────────────────────────────┘
+
+
+=== TABLE: soldes_exercices ===
+┌─────────┬─────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name             │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼─────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'                    │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'exercice_id'           │ 'uuid'                        │ null                     │ 'NO'        │ null                 │
+│ 2       │ 'proprietaire_id'       │ 'uuid'                        │ null                     │ 'NO'        │ null                 │
+│ 3       │ 'solde_debut'           │ 'numeric'                     │ null                     │ 'NO'        │ '0'                  │
+│ 4       │ 'total_provisions'      │ 'numeric'                     │ null                     │ 'YES'       │ '0'                  │
+│ 5       │ 'total_charges'         │ 'numeric'                     │ null                     │ 'YES'       │ '0'                  │
+│ 6       │ 'total_ajustements'     │ 'numeric'                     │ null                     │ 'YES'       │ '0'                  │
+│ 7       │ 'cotisation_reserve'    │ 'numeric'                     │ null                     │ 'YES'       │ '0'                  │
+│ 8       │ 'solde_fin'             │ 'numeric'                     │ null                     │ 'YES'       │ '0'                  │
+│ 9       │ 'est_a_jour'            │ 'boolean'                     │ null                     │ 'YES'       │ 'true'               │
+│ 10      │ 'date_derniere_relance' │ 'date'                        │ null                     │ 'YES'       │ null                 │
+│ 11      │ 'created_at'            │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 12      │ 'updated_at'            │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+└─────────┴─────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: subscriptions ===
+┌─────────┬──────────────────────────┬────────────────────────────┬──────────────────────────┬─────────────┬────────────────────────────────┐
+│ (index) │ column_name              │ data_type                  │ character_maximum_length │ is_nullable │ column_default                 │
+├─────────┼──────────────────────────┼────────────────────────────┼──────────────────────────┼─────────────┼────────────────────────────────┤
+│ 0       │ 'id'                     │ 'uuid'                     │ null                     │ 'NO'        │ 'gen_random_uuid()'            │
+│ 1       │ 'user_id'                │ 'uuid'                     │ null                     │ 'NO'        │ null                           │
+│ 2       │ 'plan_id'                │ 'uuid'                     │ null                     │ 'NO'        │ null                           │
+│ 3       │ 'status'                 │ 'character varying'        │ 20                       │ 'NO'        │ "'active'::character varying"  │
+│ 4       │ 'billing_cycle'          │ 'character varying'        │ 20                       │ 'YES'       │ "'monthly'::character varying" │
+│ 5       │ 'current_period_start'   │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'            │
+│ 6       │ 'current_period_end'     │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                           │
+│ 7       │ 'trial_end'              │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                           │
+│ 8       │ 'cancel_at_period_end'   │ 'boolean'                  │ null                     │ 'YES'       │ 'false'                        │
+│ 9       │ 'canceled_at'            │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                           │
+│ 10      │ 'stripe_subscription_id' │ 'character varying'        │ 255                      │ 'YES'       │ null                           │
+│ 11      │ 'stripe_customer_id'     │ 'character varying'        │ 255                      │ 'YES'       │ null                           │
+│ 12      │ 'created_at'             │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'            │
+│ 13      │ 'updated_at'             │ 'timestamp with time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'            │
+│ 14      │ 'total_units'            │ 'integer'                  │ null                     │ 'YES'       │ '0'                            │
+│ 15      │ 'discount_percentage'    │ 'integer'                  │ null                     │ 'YES'       │ '0'                            │
+│ 16      │ 'discount_expires_at'    │ 'timestamp with time zone' │ null                     │ 'YES'       │ null                           │
+│ 17      │ 'base_price_yearly'      │ 'numeric'                  │ null                     │ 'YES'       │ '0'                            │
+│ 18      │ 'discount_amount'        │ 'numeric'                  │ null                     │ 'YES'       │ '0'                            │
+│ 19      │ 'vat_amount'             │ 'numeric'                  │ null                     │ 'YES'       │ '0'                            │
+│ 20      │ 'final_price_yearly'     │ 'numeric'                  │ null                     │ 'YES'       │ '0'                            │
+└─────────┴──────────────────────────┴────────────────────────────┴──────────────────────────┴─────────────┴────────────────────────────────┘
+
+
+=== TABLE: tarifs_eau ===
+┌─────────┬────────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name                │ data_type                     │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼────────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'                       │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'nom'                      │ 'character varying'           │ 100                      │ 'NO'        │ null                │
+│ 2       │ 'region'                   │ 'character varying'           │ 20                       │ 'NO'        │ null                │
+│ 3       │ 'fournisseur'              │ 'character varying'           │ 50                       │ 'NO'        │ null                │
+│ 4       │ 'annee'                    │ 'integer'                     │ null                     │ 'NO'        │ null                │
+│ 5       │ 'tarif_cve_distribution'   │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 6       │ 'tarif_cve_assainissement' │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 7       │ 'm3_gratuits_par_habitant' │ 'integer'                     │ null                     │ 'YES'       │ '15'                │
+│ 8       │ 'max_habitants_gratuits'   │ 'integer'                     │ null                     │ 'YES'       │ '5'                 │
+│ 9       │ 'tarif_base'               │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 10      │ 'tarif_confort'            │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 11      │ 'm3_base_fixe'             │ 'integer'                     │ null                     │ 'YES'       │ null                │
+│ 12      │ 'm3_base_par_habitant'     │ 'integer'                     │ null                     │ 'YES'       │ null                │
+│ 13      │ 'tarif_unique'             │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 14      │ 'contribution_fonds_eau'   │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 15      │ 'redevance_fixe_annuelle'  │ 'numeric'                     │ null                     │ 'NO'        │ null                │
+│ 16      │ 'redevance_par_logement'   │ 'boolean'                     │ null                     │ 'YES'       │ 'false'             │
+│ 17      │ 'tva_pourcent'             │ 'numeric'                     │ null                     │ 'YES'       │ '6.00'              │
+│ 18      │ 'actif'                    │ 'boolean'                     │ null                     │ 'YES'       │ 'true'              │
+│ 19      │ 'created_at'               │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+│ 20      │ 'tarif_distribution'       │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 21      │ 'tarif_assainissement'     │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 22      │ 'tarif_superflu'           │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+└─────────┴────────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: tarifs_regionaux ===
+┌─────────┬───────────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name                   │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼───────────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'                          │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'region'                      │ 'character varying'           │ 10                       │ 'NO'        │ null                 │
+│ 2       │ 'fournisseur'                 │ 'character varying'           │ 50                       │ 'NO'        │ null                 │
+│ 3       │ 'tarif_base_m3'               │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 4       │ 'tarif_confort_m3'            │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 5       │ 'volume_forfaitaire_personne' │ 'integer'                     │ null                     │ 'YES'       │ '30'                 │
+│ 6       │ 'volume_forfaitaire_unite'    │ 'integer'                     │ null                     │ 'YES'       │ '30'                 │
+│ 7       │ 'redevance_annuelle'          │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 8       │ 'actif'                       │ 'boolean'                     │ null                     │ 'YES'       │ 'true'               │
+│ 9       │ 'date_debut'                  │ 'date'                        │ null                     │ 'NO'        │ null                 │
+│ 10      │ 'date_fin'                    │ 'date'                        │ null                     │ 'YES'       │ null                 │
+│ 11      │ 'created_at'                  │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 12      │ 'updated_at'                  │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+└─────────┴───────────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: transactions ===
+┌─────────┬────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name        │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'               │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'immeuble_id'      │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 2       │ 'facture_id'       │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 3       │ 'date_transaction' │ 'date'                        │ null                     │ 'NO'        │ null                 │
+│ 4       │ 'type'             │ 'character varying'           │ 50                       │ 'NO'        │ null                 │
+│ 5       │ 'montant'          │ 'numeric'                     │ null                     │ 'NO'        │ null                 │
+│ 6       │ 'description'      │ 'text'                        │ null                     │ 'YES'       │ null                 │
+│ 7       │ 'reference'        │ 'character varying'           │ 100                      │ 'YES'       │ null                 │
+│ 8       │ 'created_at'       │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+│ 9       │ 'exercice_id'      │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 10      │ 'proprietaire_id'  │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 11      │ 'tags'             │ 'jsonb'                       │ null                     │ 'YES'       │ "'[]'::jsonb"        │
+│ 12      │ 'nom_contrepartie' │ 'character varying'           │ 255                      │ 'YES'       │ null                 │
+│ 13      │ 'communication'    │ 'text'                        │ null                     │ 'YES'       │ null                 │
+└─────────┴────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: transactions_proprietaires ===
+┌─────────┬───────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────┐
+│ (index) │ column_name       │ data_type                     │ character_maximum_length │ is_nullable │ column_default       │
+├─────────┼───────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────┤
+│ 0       │ 'id'              │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()' │
+│ 1       │ 'transaction_id'  │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 2       │ 'proprietaire_id' │ 'uuid'                        │ null                     │ 'YES'       │ null                 │
+│ 3       │ 'montant'         │ 'numeric'                     │ null                     │ 'NO'        │ null                 │
+│ 4       │ 'pourcentage'     │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
+│ 5       │ 'created_at'      │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'  │
+└─────────┴───────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: users ===
+┌─────────┬───────────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────────────────┐
+│ (index) │ column_name                   │ data_type                     │ character_maximum_length │ is_nullable │ column_default                  │
+├─────────┼───────────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────────────────┤
+│ 0       │ 'id'                          │ 'uuid'                        │ null                     │ 'NO'        │ 'uuid_generate_v4()'            │
+│ 1       │ 'email'                       │ 'character varying'           │ 255                      │ 'NO'        │ null                            │
+│ 2       │ 'password_hash'               │ 'character varying'           │ 255                      │ 'YES'       │ null                            │
+│ 3       │ 'first_name'                  │ 'character varying'           │ 100                      │ 'YES'       │ null                            │
+│ 4       │ 'last_name'                   │ 'character varying'           │ 100                      │ 'YES'       │ null                            │
+│ 5       │ 'locale'                      │ 'character varying'           │ 5                        │ 'YES'       │ "'fr'::character varying"       │
+│ 6       │ 'email_verified'              │ 'boolean'                     │ null                     │ 'YES'       │ 'false'                         │
+│ 7       │ 'created_at'                  │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'             │
+│ 8       │ 'last_login'                  │ 'timestamp without time zone' │ null                     │ 'YES'       │ null                            │
+│ 9       │ 'phone'                       │ 'character varying'           │ 20                       │ 'YES'       │ null                            │
+│ 10      │ 'updated_at'                  │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'             │
+│ 11      │ 'telephone'                   │ 'character varying'           │ 50                       │ 'YES'       │ null                            │
+│ 12      │ 'referred_by_code'            │ 'character varying'           │ 20                       │ 'YES'       │ null                            │
+│ 13      │ 'is_professional'             │ 'boolean'                     │ null                     │ 'YES'       │ 'false'                         │
+│ 14      │ 'company_name'                │ 'character varying'           │ 255                      │ 'YES'       │ null                            │
+│ 15      │ 'vat_number'                  │ 'character varying'           │ 50                       │ 'YES'       │ null                            │
+│ 16      │ 'billing_address_street'      │ 'character varying'           │ 255                      │ 'YES'       │ null                            │
+│ 17      │ 'billing_address_postal_code' │ 'character varying'           │ 20                       │ 'YES'       │ null                            │
+│ 18      │ 'billing_address_city'        │ 'character varying'           │ 100                      │ 'YES'       │ null                            │
+│ 19      │ 'billing_address_country'     │ 'character varying'           │ 100                      │ 'YES'       │ "'Belgique'::character varying" │
+│ 20      │ 'role'                        │ 'character varying'           │ 20                       │ 'YES'       │ "'user'::character varying"     │
+└─────────┴───────────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────────────────┘
+
+
+=== TABLE: v_compteurs_hierarchie ===
+┌─────────┬─────────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬────────────────┐
+│ (index) │ column_name                 │ data_type                     │ character_maximum_length │ is_nullable │ column_default │
+├─────────┼─────────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼────────────────┤
+│ 0       │ 'id'                        │ 'uuid'                        │ null                     │ 'YES'       │ null           │
+│ 1       │ 'immeuble_id'               │ 'uuid'                        │ null                     │ 'YES'       │ null           │
+│ 2       │ 'locataire_id'              │ 'uuid'                        │ null                     │ 'YES'       │ null           │
+│ 3       │ 'numero_compteur'           │ 'character varying'           │ 50                       │ 'YES'       │ null           │
+│ 4       │ 'emplacement'               │ 'text'                        │ null                     │ 'YES'       │ null           │
+│ 5       │ 'actif'                     │ 'boolean'                     │ null                     │ 'YES'       │ null           │
+│ 6       │ 'created_at'                │ 'timestamp without time zone' │ null                     │ 'YES'       │ null           │
+│ 7       │ 'proprietaire_id'           │ 'uuid'                        │ null                     │ 'YES'       │ null           │
+│ 8       │ 'type_compteur'             │ 'character varying'           │ 50                       │ 'YES'       │ null           │
+│ 9       │ 'compteur_principal_id'     │ 'uuid'                        │ null                     │ 'YES'       │ null           │
+│ 10      │ 'ordre'                     │ 'integer'                     │ null                     │ 'YES'       │ null           │
+│ 11      │ 'compteur_principal_numero' │ 'character varying'           │ 50                       │ 'YES'       │ null           │
+│ 12      │ 'ordre_affichage'           │ 'integer'                     │ null                     │ 'YES'       │ null           │
+└─────────┴─────────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴────────────────┘

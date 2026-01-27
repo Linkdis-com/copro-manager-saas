@@ -1,0 +1,158 @@
+{
+  "common": {
+    "welcome": "Bienvenue",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "actions": "Actions",
+    "back": "Retour",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "Inscription",
+    "logout": "Déconnexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "alreadyAccount": "Déjà un compte ?",
+    "noAccount": "Pas encore de compte ?",
+    "loginTitle": "Connectez-vous à votre compte",
+    "registerTitle": "Créez votre compte",
+    "passwordMin": "Le mot de passe doit contenir au moins 8 caractères",
+    "loginSuccess": "Connexion réussie",
+    "registerSuccess": "Inscription réussie"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "immeubles": "Immeubles",
+    "locataires": "Locataires",
+    "decomptes": "Décomptes",
+    "settings": "Paramètres"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue, {{name}} !",
+    "overview": "Voici un aperçu de votre activité",
+    "stats": {
+      "immeubles": "Immeubles",
+      "locataires": "Locataires",
+      "decomptes": "Décomptes"
+    },
+    "quickActions": "Actions rapides",
+    "recentActivity": "Activité récente",
+    "noActivity": "Aucune activité récente",
+    "activityDescription": "Les dernières actions apparaîtront ici",
+    "actions": {
+      "addImmeuble": "Ajouter un immeuble",
+      "addImmeubleDesc": "Créer un nouveau bien en copropriété",
+      "newDecompte": "Nouveau décompte",
+      "newDecompteDesc": "Générer un décompte de charges",
+      "viewReports": "Voir les rapports",
+      "viewReportsDesc": "Consulter les statistiques détaillées",
+      "manageLocataires": "Gérer les locataires",
+      "manageLocatairesDesc": "Ajouter ou modifier des locataires"
+    }
+  },
+  "immeubles": {
+    "title": "Gestion des Immeubles",
+    "add": "Ajouter un immeuble",
+    "edit": "Modifier l'immeuble",
+    "delete": "Supprimer l'immeuble",
+    "list": "Liste des immeubles",
+    "noImmeubles": "Aucun immeuble",
+    "noImmeubleDesc": "Commencez par ajouter votre premier immeuble",
+    "form": {
+      "nom": "Nom de l'immeuble",
+      "adresse": "Adresse",
+      "codePostal": "Code postal",
+      "ville": "Ville",
+      "region": "Région",
+      "totalMilliemes": "Total millièmes",
+      "modeComptageEau": "Mode comptage eau",
+      "tarifEau": "Tarif eau (€/m³)",
+      "fournisseurEau": "Fournisseur d'eau"
+    },
+    "regions": {
+      "brussels": "Bruxelles",
+      "wallonia": "Wallonie",
+      "flanders": "Flandre"
+    },
+    "modeComptage": {
+      "collectif": "Collectif",
+      "divisionnaire": "Divisionnaire",
+      "individuel": "Individuel"
+    }
+  },
+  "locataires": {
+    "title": "Gestion des Locataires",
+    "add": "Ajouter un locataire",
+    "edit": "Modifier le locataire",
+    "delete": "Supprimer le locataire",
+    "list": "Liste des locataires",
+    "noLocataires": "Aucun locataire",
+    "form": {
+      "nom": "Nom",
+      "prenom": "Prénom",
+      "email": "Email",
+      "telephone": "Téléphone",
+      "appartement": "Appartement",
+      "dateEntree": "Date d'entrée",
+      "dateSortie": "Date de sortie",
+      "loyer": "Loyer mensuel",
+      "charges": "Charges mensuelles"
+    }
+  },
+  "decomptes": {
+    "title": "Gestion des Décomptes",
+    "add": "Nouveau décompte",
+    "edit": "Modifier le décompte",
+    "delete": "Supprimer le décompte",
+    "list": "Liste des décomptes",
+    "noDecomptes": "Aucun décompte",
+    "form": {
+      "annee": "Année",
+      "periodeDebut": "Période début",
+      "periodeFin": "Période fin",
+      "chargesProvisionnees": "Charges provisionnées",
+      "chargesReelles": "Charges réelles",
+      "solde": "Solde",
+      "notes": "Notes"
+    },
+    "categories": {
+      "eau": "Eau",
+      "chauffage": "Chauffage",
+      "electricite": "Électricité",
+      "gaz": "Gaz",
+      "ascenseur": "Ascenseur",
+      "nettoyage": "Nettoyage",
+      "ordures": "Ordures ménagères"
+    }
+  },
+  "validation": {
+    "required": "Ce champ est requis",
+    "email": "Email invalide",
+    "minLength": "Minimum {{min}} caractères",
+    "maxLength": "Maximum {{max}} caractères",
+    "number": "Doit être un nombre",
+    "positive": "Doit être positif"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue",
+    "network": "Erreur de connexion",
+    "notFound": "Page non trouvée",
+    "unauthorized": "Non autorisé",
+    "forbidden": "Accès interdit"
+  }
+}

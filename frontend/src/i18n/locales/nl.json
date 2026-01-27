@@ -1,0 +1,158 @@
+{
+  "common": {
+    "welcome": "Welkom",
+    "loading": "Laden...",
+    "error": "Fout",
+    "success": "Succes",
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "add": "Toevoegen",
+    "search": "Zoeken",
+    "actions": "Acties",
+    "back": "Terug",
+    "confirm": "Bevestigen",
+    "close": "Sluiten",
+    "yes": "Ja",
+    "no": "Nee"
+  },
+  "auth": {
+    "login": "Inloggen",
+    "register": "Registreren",
+    "logout": "Uitloggen",
+    "email": "E-mail",
+    "password": "Wachtwoord",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "signIn": "Aanmelden",
+    "signUp": "Registreren",
+    "alreadyAccount": "Heb je al een account?",
+    "noAccount": "Nog geen account?",
+    "loginTitle": "Meld je aan bij je account",
+    "registerTitle": "Maak je account aan",
+    "passwordMin": "Wachtwoord moet minimaal 8 tekens bevatten",
+    "loginSuccess": "Succesvol ingelogd",
+    "registerSuccess": "Succesvol geregistreerd"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "immeubles": "Gebouwen",
+    "locataires": "Huurders",
+    "decomptes": "Afrekeningen",
+    "settings": "Instellingen"
+  },
+  "dashboard": {
+    "welcome": "Welkom, {{name}}!",
+    "overview": "Hier is een overzicht van je activiteit",
+    "stats": {
+      "immeubles": "Gebouwen",
+      "locataires": "Huurders",
+      "decomptes": "Afrekeningen"
+    },
+    "quickActions": "Snelle acties",
+    "recentActivity": "Recente activiteit",
+    "noActivity": "Geen recente activiteit",
+    "activityDescription": "De laatste acties verschijnen hier",
+    "actions": {
+      "addImmeuble": "Gebouw toevoegen",
+      "addImmeubleDesc": "Nieuw mede-eigendomspand aanmaken",
+      "newDecompte": "Nieuwe afrekening",
+      "newDecompteDesc": "Kostenafrekening genereren",
+      "viewReports": "Rapporten bekijken",
+      "viewReportsDesc": "Gedetailleerde statistieken raadplegen",
+      "manageLocataires": "Huurders beheren",
+      "manageLocatairesDesc": "Huurders toevoegen of wijzigen"
+    }
+  },
+  "immeubles": {
+    "title": "Beheer Gebouwen",
+    "add": "Gebouw toevoegen",
+    "edit": "Gebouw bewerken",
+    "delete": "Gebouw verwijderen",
+    "list": "Lijst van gebouwen",
+    "noImmeubles": "Geen gebouwen",
+    "noImmeubleDesc": "Begin met het toevoegen van je eerste gebouw",
+    "form": {
+      "nom": "Naam gebouw",
+      "adresse": "Adres",
+      "codePostal": "Postcode",
+      "ville": "Stad",
+      "region": "Regio",
+      "totalMilliemes": "Totaal duizendsten",
+      "modeComptageEau": "Water meetmodus",
+      "tarifEau": "Watertarief (€/m³)",
+      "fournisseurEau": "Waterleverancier"
+    },
+    "regions": {
+      "brussels": "Brussel",
+      "wallonia": "Wallonië",
+      "flanders": "Vlaanderen"
+    },
+    "modeComptage": {
+      "collectif": "Collectief",
+      "divisionnaire": "Divisieonderdeel",
+      "individuel": "Individueel"
+    }
+  },
+  "locataires": {
+    "title": "Beheer Huurders",
+    "add": "Huurder toevoegen",
+    "edit": "Huurder bewerken",
+    "delete": "Huurder verwijderen",
+    "list": "Lijst van huurders",
+    "noLocataires": "Geen huurders",
+    "form": {
+      "nom": "Achternaam",
+      "prenom": "Voornaam",
+      "email": "E-mail",
+      "telephone": "Telefoon",
+      "appartement": "Appartement",
+      "dateEntree": "Ingangsdatum",
+      "dateSortie": "Vertrekdatum",
+      "loyer": "Maandelijkse huur",
+      "charges": "Maandelijkse kosten"
+    }
+  },
+  "decomptes": {
+    "title": "Beheer Afrekeningen",
+    "add": "Nieuwe afrekening",
+    "edit": "Afrekening bewerken",
+    "delete": "Afrekening verwijderen",
+    "list": "Lijst van afrekeningen",
+    "noDecomptes": "Geen afrekeningen",
+    "form": {
+      "annee": "Jaar",
+      "periodeDebut": "Startperiode",
+      "periodeFin": "Eindperiode",
+      "chargesProvisionnees": "Voorschot kosten",
+      "chargesReelles": "Werkelijke kosten",
+      "solde": "Saldo",
+      "notes": "Opmerkingen"
+    },
+    "categories": {
+      "eau": "Water",
+      "chauffage": "Verwarming",
+      "electricite": "Elektriciteit",
+      "gaz": "Gas",
+      "ascenseur": "Lift",
+      "nettoyage": "Schoonmaak",
+      "ordures": "Huisvuil"
+    }
+  },
+  "validation": {
+    "required": "Dit veld is verplicht",
+    "email": "Ongeldig e-mailadres",
+    "minLength": "Minimaal {{min}} tekens",
+    "maxLength": "Maximaal {{max}} tekens",
+    "number": "Moet een getal zijn",
+    "positive": "Moet positief zijn"
+  },
+  "errors": {
+    "generic": "Er is een fout opgetreden",
+    "network": "Verbindingsfout",
+    "notFound": "Pagina niet gevonden",
+    "unauthorized": "Niet geautoriseerd",
+    "forbidden": "Toegang geweigerd"
+  }
+}

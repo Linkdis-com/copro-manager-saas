@@ -317,3 +317,25 @@ export async function deleteFournisseur(req, res) {
     });
   }
 }
+// GET CATEGORIES - Liste des catégories disponibles
+export async function getCategories(req, res) {
+  const categories = [
+    { value: 'eau', label: 'Eau', icon: '💧', color: 'blue' },
+    { value: 'electricite', label: 'Électricité', icon: '⚡', color: 'yellow' },
+    { value: 'gaz', label: 'Gaz', icon: '🔥', color: 'orange' },
+    { value: 'chauffage', label: 'Chauffage', icon: '🔥', color: 'red' },
+    { value: 'ascenseur', label: 'Ascenseur', icon: '🛗', color: 'gray' },
+    { value: 'nettoyage', label: 'Nettoyage', icon: '🧹', color: 'green' },
+    { value: 'assurance', label: 'Assurance', icon: '🛡️', color: 'purple' },
+    { value: 'syndic', label: 'Syndic', icon: '🏢', color: 'indigo' },
+    { value: 'entretien', label: 'Entretien', icon: '🔧', color: 'teal' },
+    { value: 'reparations', label: 'Réparations', icon: '🛠️', color: 'amber' },
+    { value: 'frais_bancaires', label: 'Frais bancaires', icon: '🏦', color: 'slate' },
+    { value: 'taxes', label: 'Taxes', icon: '📋', color: 'rose' },
+    { value: 'provision', label: 'Provision charges', icon: '💰', color: 'emerald' },
+    { value: 'loyer', label: 'Loyer/Revenus', icon: '🏠', color: 'cyan' },
+    { value: 'autre', label: 'Autre', icon: '📦', color: 'gray' }
+  ];
+
+  res.json({ success: true, categories });
+}

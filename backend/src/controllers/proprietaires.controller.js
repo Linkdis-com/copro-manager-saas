@@ -314,11 +314,18 @@ export async function updateProprietaire(req, res) {
   }
 }
 
-// DELETE - Désactiver un propriétaire
+// ================================================================
+// DELETE - Suppression DÉFINITIVE avec CASCADE
+// ================================================================
+// ✅ CORRIGÉ: Vraie suppression au lieu de soft delete
+// Les tables dépendantes sont automatiquement nettoyées grâce à CASCADE
+// ================================================================
 export async function deleteProprietaire(req, res) {
   const { immeubleId, id } = req.params;
 
   try {
+    console.log('🔍 DELETE PROPRIETAIRE:', { immeubleId, id, userId: req.user.id });
+
     // Vérifier que l'immeuble appartient à l'utilisateur
     const immeubleCheck = await pool.query(
       'SELECT id FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
@@ -326,39 +333,64 @@ export async function deleteProprietaire(req, res) {
     );
 
     if (immeubleCheck.rows.length === 0) {
+      console.log('❌ Immeuble not found or access denied');
       return res.status(404).json({ 
         error: 'Not found',
-        message: 'Immeuble not found' 
+        message: 'Immeuble not found or you do not have access' 
       });
     }
 
     // Vérifier que le propriétaire existe
     const proprietaireCheck = await pool.query(
-      'SELECT id FROM proprietaires WHERE id = $1 AND immeuble_id = $2',
+      'SELECT id, nom, prenom FROM proprietaires WHERE id = $1 AND immeuble_id = $2',
       [id, immeubleId]
     );
 
     if (proprietaireCheck.rows.length === 0) {
+      console.log('❌ Propriétaire not found');
       return res.status(404).json({ 
         error: 'Not found',
         message: 'Propriétaire not found' 
       });
     }
 
-    // Désactiver le propriétaire (soft delete)
-    await pool.query(
-      'UPDATE proprietaires SET actif = false, date_fin = CURRENT_DATE, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-      [id]
+    const proprietaire = proprietaireCheck.rows[0];
+    console.log('🔍 Propriétaire à supprimer:', proprietaire);
+
+    // ✅ SUPPRESSION DÉFINITIVE (CASCADE configuré)
+    // Supprime automatiquement dans ces 9 tables :
+    // - locataires (CASCADE)
+    // - compteurs_eau (CASCADE)
+    // - appels_proprietaires (CASCADE)
+    // - factures_repartition (CASCADE)
+    // - provisions_mensuelles (CASCADE)
+    // - repartitions_eau (CASCADE)
+    // - soldes_exercices (CASCADE)
+    // - transactions (SET NULL)
+    // - transactions_proprietaires (CASCADE)
+    const deleteResult = await pool.query(
+      'DELETE FROM proprietaires WHERE id = $1 AND immeuble_id = $2 RETURNING *',
+      [id, immeubleId]
     );
 
-    console.log(`✅ Propriétaire deactivated: ${id} by user ${req.user.email}`);
+    if (deleteResult.rowCount === 0) {
+      console.log('❌ Delete failed - no rows affected');
+      return res.status(500).json({ 
+        error: 'Delete failed',
+        message: 'Failed to delete proprietaire' 
+      });
+    }
 
-    res.json({
-      success: true,
-      message: 'Propriétaire deactivated successfully'
-    });
+    console.log(`✅ Propriétaire DELETED: ${proprietaire.nom} ${proprietaire.prenom} (ID: ${id}) by user ${req.user.email}`);
+    console.log('✅ CASCADE automatically cleaned 9 related tables');
+
+    res.status(204).send();
+
   } catch (error) {
-    console.error('Error deleting proprietaire:', error);
+    console.error('❌ Error deleting proprietaire:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error detail:', error.detail);
+    
     res.status(500).json({ 
       error: 'Failed to delete proprietaire',
       message: error.message 

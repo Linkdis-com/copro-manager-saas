@@ -1,0 +1,158 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "actions": "Actions",
+    "back": "Back",
+    "confirm": "Confirm",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "alreadyAccount": "Already have an account?",
+    "noAccount": "Don't have an account yet?",
+    "loginTitle": "Sign in to your account",
+    "registerTitle": "Create your account",
+    "passwordMin": "Password must be at least 8 characters",
+    "loginSuccess": "Login successful",
+    "registerSuccess": "Registration successful"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "immeubles": "Buildings",
+    "locataires": "Tenants",
+    "decomptes": "Statements",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}!",
+    "overview": "Here's an overview of your activity",
+    "stats": {
+      "immeubles": "Buildings",
+      "locataires": "Tenants",
+      "decomptes": "Statements"
+    },
+    "quickActions": "Quick Actions",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity",
+    "activityDescription": "Recent actions will appear here",
+    "actions": {
+      "addImmeuble": "Add Building",
+      "addImmeubleDesc": "Create a new condominium property",
+      "newDecompte": "New Statement",
+      "newDecompteDesc": "Generate a utility statement",
+      "viewReports": "View Reports",
+      "viewReportsDesc": "View detailed statistics",
+      "manageLocataires": "Manage Tenants",
+      "manageLocatairesDesc": "Add or modify tenants"
+    }
+  },
+  "immeubles": {
+    "title": "Building Management",
+    "add": "Add Building",
+    "edit": "Edit Building",
+    "delete": "Delete Building",
+    "list": "Building List",
+    "noImmeubles": "No buildings",
+    "noImmeubleDesc": "Start by adding your first building",
+    "form": {
+      "nom": "Building name",
+      "adresse": "Address",
+      "codePostal": "Postal code",
+      "ville": "City",
+      "region": "Region",
+      "totalMilliemes": "Total shares",
+      "modeComptageEau": "Water metering mode",
+      "tarifEau": "Water tariff (€/m³)",
+      "fournisseurEau": "Water supplier"
+    },
+    "regions": {
+      "brussels": "Brussels",
+      "wallonia": "Wallonia",
+      "flanders": "Flanders"
+    },
+    "modeComptage": {
+      "collectif": "Collective",
+      "divisionnaire": "Individual meters",
+      "individuel": "Individual"
+    }
+  },
+  "locataires": {
+    "title": "Tenant Management",
+    "add": "Add Tenant",
+    "edit": "Edit Tenant",
+    "delete": "Delete Tenant",
+    "list": "Tenant List",
+    "noLocataires": "No tenants",
+    "form": {
+      "nom": "Last Name",
+      "prenom": "First Name",
+      "email": "Email",
+      "telephone": "Phone",
+      "appartement": "Apartment",
+      "dateEntree": "Move-in Date",
+      "dateSortie": "Move-out Date",
+      "loyer": "Monthly Rent",
+      "charges": "Monthly Charges"
+    }
+  },
+  "decomptes": {
+    "title": "Statement Management",
+    "add": "New Statement",
+    "edit": "Edit Statement",
+    "delete": "Delete Statement",
+    "list": "Statement List",
+    "noDecomptes": "No statements",
+    "form": {
+      "annee": "Year",
+      "periodeDebut": "Start Period",
+      "periodeFin": "End Period",
+      "chargesProvisionnees": "Provisional Charges",
+      "chargesReelles": "Actual Charges",
+      "solde": "Balance",
+      "notes": "Notes"
+    },
+    "categories": {
+      "eau": "Water",
+      "chauffage": "Heating",
+      "electricite": "Electricity",
+      "gaz": "Gas",
+      "ascenseur": "Elevator",
+      "nettoyage": "Cleaning",
+      "ordures": "Garbage"
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Invalid email",
+    "minLength": "Minimum {{min}} characters",
+    "maxLength": "Maximum {{max}} characters",
+    "number": "Must be a number",
+    "positive": "Must be positive"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "network": "Connection error",
+    "notFound": "Page not found",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Access denied"
+  }
+}

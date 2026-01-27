@@ -7,6 +7,7 @@ import {
   deleteLocataire
 } from '../controllers/locataires.controller.js';
 import { authenticate } from '../middleware/auth.js';
+import { checkSubscriptionLimit } from '../middleware/subscription.middleware.js';
 import decomptesRoutes from './decomptes.routes.js';
 import { getCategories } from '../controllers/decomptes.controller.js';
 
@@ -21,7 +22,10 @@ router.get('/decomptes-categories', getCategories);
 // Routes CRUD Locataires
 router.get('/', getAllLocataires);
 router.get('/:id', getLocataire);
-router.post('/', createLocataire);
+
+// POST avec vérification de la limite d'abonnement
+router.post('/', checkSubscriptionLimit('locataires'), createLocataire);
+
 router.patch('/:id', updateLocataire);
 router.delete('/:id', deleteLocataire);
 

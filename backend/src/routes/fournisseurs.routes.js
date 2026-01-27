@@ -4,14 +4,17 @@ import {
   getFournisseur,
   createFournisseur,
   updateFournisseur,
-  deleteFournisseur
+  deleteFournisseur,
+  getCategories  // ← AJOUTER
 } from '../controllers/fournisseurs.controller.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router({ mergeParams: true });
 
-// Toutes les routes sont protégées
 router.use(authenticate);
+
+// Route catégories (AVANT les routes avec :id)
+router.get('/categories', getCategories);  // ← AJOUTER
 
 // Routes CRUD
 router.get('/', getAllFournisseurs);
