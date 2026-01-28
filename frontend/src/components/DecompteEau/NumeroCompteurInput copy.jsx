@@ -1,15 +1,12 @@
-// =====================================================
-// 🚀 INPUT COMPTEUR - Avec couleurs bleues/vertes
-// 6 cases BLEUES (m³) + 4 cases VERTES (décimales)
-// =====================================================
 import { useState, useEffect, useRef } from 'react';
 
-export default function NumeroCompteurInput({ value, onChange, disabled, maxLength = 10 }) {
+export default function NumeroCompteurInput({ value, onChange, disabled }) {
   const [digits, setDigits] = useState([]);
   const inputRefs = useRef([]);
 
-  const m3Length = 6;       // 6 cases BLEUES
-  const decimalLength = 4;  // 4 cases VERTES
+  // 6 cases BLEUES (m³) + 4 cases VERTES (décimales) = 10 total
+  const m3Length = 6;
+  const decimalLength = 4;
   const totalLength = 10;
 
   useEffect(() => {
@@ -18,7 +15,7 @@ export default function NumeroCompteurInput({ value, onChange, disabled, maxLeng
   }, [value]);
 
   const handleChange = (i, v) => {
-    const c = v.slice(-1).replace(/[^0-9]/g, '');
+    const c = v.slice(-1).replace(/[^0-9]/g, ''); // Que des chiffres
     const nd = [...digits];
     nd[i] = c || ' ';
     setDigits(nd);

@@ -1,8 +1,12 @@
+// =====================================================
+// LAYOUT PRINCIPAL - Desktop + Mobile
+// frontend/src/components/Layout/Layout.jsx
+// =====================================================
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
-  Home, Building2, Users, FileText, Settings, LogOut, 
-  UserCircle2, Lock, Calculator, Menu, X, ChevronDown
+  Home, Building2, Users, Settings, LogOut, 
+  UserCircle2, Lock, Menu, X, ChevronDown
 } from 'lucide-react';
 import { useState } from 'react';
 import MobileMenu from './MobileMenu';
@@ -18,20 +22,19 @@ function Layout() {
     navigate('/login');
   };
 
-  // Navigation complète synchronisée avec MobileMenu (SANS Tarifs eau)
+  // Navigation principale (SANS liens eau - ceux-ci sont dans la page immeuble)
   const navigation = [
     { name: 'Tableau de bord', to: '/dashboard', icon: Home },
     { name: 'Immeubles', to: '/immeubles', icon: Building2 },
     { name: 'Propriétaires', to: '/proprietaires', icon: Users },
     { name: 'Locataires', to: '/locataires', icon: UserCircle2 },
-    { name: "Décomptes Eau", to: '/decomptes', icon: Calculator },
     { name: 'Exercices clôturés', to: '/exercices-clotures', icon: Lock },
     { name: 'Paramètres', to: '/settings', icon: Settings },
   ];
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar Desktop - Style Admin Foncé */}
+      {/* Sidebar Desktop */}
       <aside className={`hidden md:flex md:flex-col ${
         sidebarOpen ? 'md:w-64' : 'md:w-20'
       } bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white transition-all duration-300`}>
@@ -139,7 +142,7 @@ function Layout() {
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16 items-center">
               <div className="flex items-center gap-3">
-                <MobileMenu />
+                <MobileMenu navigation={navigation} />
                 <h1 className="text-xl font-bold text-gray-900">
                   🏢 Copro Manager
                 </h1>

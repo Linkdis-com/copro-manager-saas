@@ -1,36 +1,21 @@
-// compteurs-eau.routes.js - AVEC VALIDATION
-
+// =====================================================
+// 🔧 ROUTES COMPTEURS EAU - MANQUANTE
+// backend/src/routes/compteurs-eau.routes.js
+// =====================================================
 import express from 'express';
 import pool from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// GET /api/v1/immeubles/:immeubleId/compteurs-eau
+// =====================================================
+// GET - Liste compteurs d'un immeuble
+// =====================================================
 router.get('/:immeubleId/compteurs-eau', authenticate, async (req, res) => {
-   console.log('🔥 Route compteurs-eau HIT !');  // ← Ajouter ce log
   const { immeubleId } = req.params;
-  console.log('📍 immeubleId:', immeubleId);
-
-  // ✅ VALIDATION - Éviter les erreurs UUID
-  if (!immeubleId || immeubleId === 'null' || immeubleId === 'undefined') {
-    return res.status(400).json({
-      error: 'Invalid request',
-      message: 'immeubleId is required and must be a valid UUID'
-    });
-  }
-
-  // ✅ VALIDATION - Format UUID
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(immeubleId)) {
-    return res.status(400).json({
-      error: 'Invalid UUID format',
-      message: 'immeubleId must be a valid UUID'
-    });
-  }
-
+  
   try {
-    // Vérifier que l'immeuble existe et appartient à l'utilisateur
+    // Vérifier ownership
     const immeubleCheck = await pool.query(
       'SELECT id FROM immeubles WHERE id = $1 AND user_id = $2',
       [immeubleId, req.user.id]
@@ -38,21 +23,18 @@ router.get('/:immeubleId/compteurs-eau', authenticate, async (req, res) => {
 
     if (immeubleCheck.rows.length === 0) {
       return res.status(404).json({
-        error: 'Not found',
-        message: 'Immeuble not found or you do not have access'
+        success: false,
+        error: 'Immeuble not found'
       });
     }
 
-    // Récupérer les compteurs
+    // Récupérer compteurs
     const result = await pool.query(`
       SELECT 
         c.*,
-        l.prenom as locataire_prenom,
-        l.nom as locataire_nom,
-        p.prenom as proprietaire_prenom,
-        p.nom as proprietaire_nom
+        p.nom as proprietaire_nom,
+        p.prenom as proprietaire_prenom
       FROM compteurs_eau c
-      LEFT JOIN locataires l ON c.locataire_id = l.id
       LEFT JOIN proprietaires p ON c.proprietaire_id = p.id
       WHERE c.immeuble_id = $1
       ORDER BY 
@@ -61,65 +43,49 @@ router.get('/:immeubleId/compteurs-eau', authenticate, async (req, res) => {
           WHEN c.type_compteur = 'divisionnaire' THEN 2
           ELSE 3
         END,
-        c.ordre,
-        c.created_at
+        c.ordre ASC,
+        c.created_at ASC
     `, [immeubleId]);
 
     res.json({
       success: true,
-      compteurs: result.rows,
-      count: result.rows.length
+      compteurs: result.rows
     });
-
   } catch (error) {
-    console.error('Error fetching compteurs:', error);
-    res.status(500).json({
-      error: 'Failed to fetch compteurs',
-      message: error.message
+    console.error('❌ Error fetching compteurs:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
     });
   }
 });
 
-// POST /api/v1/immeubles/:immeubleId/compteurs-eau
+// =====================================================
+// POST - Créer un compteur
+// =====================================================
 router.post('/:immeubleId/compteurs-eau', authenticate, async (req, res) => {
   const { immeubleId } = req.params;
+  
   const {
-    numeroCompteur,
-    locataireId,
-    proprietaireId,
-    typeCompteur,
-    compteurPrincipalId,
+    type_compteur,
+    numero_compteur,
+    proprietaire_id,
     emplacement,
     actif = true
   } = req.body;
 
-  // ✅ VALIDATION - immeubleId
-  if (!immeubleId || immeubleId === 'null' || immeubleId === 'undefined') {
-    return res.status(400).json({
-      error: 'Invalid request',
-      message: 'immeubleId is required'
-    });
-  }
+  console.log('📥 CREATE COMPTEUR:', req.body);
 
-  // ✅ VALIDATION - Champs requis
-  if (!numeroCompteur || !typeCompteur) {
+  // Validation
+  if (!type_compteur || !numero_compteur) {
     return res.status(400).json({
-      error: 'Validation error',
-      message: 'numeroCompteur and typeCompteur are required'
-    });
-  }
-
-  // ✅ VALIDATION - Type compteur
-  const validTypes = ['principal', 'divisionnaire', 'collectif', 'individuel'];
-  if (!validTypes.includes(typeCompteur)) {
-    return res.status(400).json({
-      error: 'Validation error',
-      message: `typeCompteur must be one of: ${validTypes.join(', ')}`
+      success: false,
+      error: 'type_compteur et numero_compteur requis'
     });
   }
 
   try {
-    // Vérifier ownership de l'immeuble
+    // Vérifier ownership
     const immeubleCheck = await pool.query(
       'SELECT id FROM immeubles WHERE id = $1 AND user_id = $2',
       [immeubleId, req.user.id]
@@ -127,57 +93,76 @@ router.post('/:immeubleId/compteurs-eau', authenticate, async (req, res) => {
 
     if (immeubleCheck.rows.length === 0) {
       return res.status(404).json({
-        error: 'Not found',
-        message: 'Immeuble not found or you do not have access'
+        success: false,
+        error: 'Immeuble not found'
       });
+    }
+
+    // Vérifier qu'il n'y a pas déjà un compteur principal (si type = principal)
+    if (type_compteur === 'principal') {
+      const existingPrincipal = await pool.query(
+        'SELECT id FROM compteurs_eau WHERE immeuble_id = $1 AND type_compteur = $2',
+        [immeubleId, 'principal']
+      );
+
+      if (existingPrincipal.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Un compteur principal existe déjà pour cet immeuble'
+        });
+      }
     }
 
     // Créer le compteur
     const result = await pool.query(`
       INSERT INTO compteurs_eau (
-        immeuble_id, numero_compteur, locataire_id, proprietaire_id,
-        type_compteur, compteur_principal_id, emplacement, actif
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        immeuble_id,
+        type_compteur,
+        numero_compteur,
+        proprietaire_id,
+        emplacement,
+        actif
+      ) VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `, [
-      immeubleId, numeroCompteur, locataireId || null, proprietaireId || null,
-      typeCompteur, compteurPrincipalId || null, emplacement || null, actif
+      immeubleId,
+      type_compteur,
+      numero_compteur,
+      proprietaire_id || null,
+      emplacement || null,
+      actif
     ]);
+
+    console.log('✅ Compteur created:', result.rows[0].id);
 
     res.status(201).json({
       success: true,
-      message: 'Compteur created successfully',
       compteur: result.rows[0]
     });
-
   } catch (error) {
-    console.error('Error creating compteur:', error);
+    console.error('❌ Error creating compteur:', error);
     res.status(500).json({
-      error: 'Failed to create compteur',
-      message: error.message
+      success: false,
+      error: error.message
     });
   }
 });
 
-// PUT /api/v1/immeubles/:immeubleId/compteurs-eau/:id
-router.put('/:immeubleId/compteurs-eau/:id', authenticate, async (req, res) => {
-  const { immeubleId, id } = req.params;
+// =====================================================
+// PATCH - Modifier un compteur
+// =====================================================
+router.patch('/:immeubleId/compteurs-eau/:compteurId', authenticate, async (req, res) => {
+  const { immeubleId, compteurId } = req.params;
+  
   const {
-    numeroCompteur,
-    locataireId,
-    proprietaireId,
-    typeCompteur,
-    compteurPrincipalId,
+    type_compteur,
+    numero_compteur,
+    proprietaire_id,
     emplacement,
     actif
   } = req.body;
 
-  // ✅ VALIDATION
-  if (!immeubleId || immeubleId === 'null') {
-    return res.status(400).json({
-      error: 'Invalid immeubleId'
-    });
-  }
+  console.log('📝 UPDATE COMPTEUR:', compteurId, req.body);
 
   try {
     // Vérifier ownership
@@ -186,59 +171,57 @@ router.put('/:immeubleId/compteurs-eau/:id', authenticate, async (req, res) => {
       FROM compteurs_eau c
       JOIN immeubles i ON c.immeuble_id = i.id
       WHERE c.id = $1 AND c.immeuble_id = $2 AND i.user_id = $3
-    `, [id, immeubleId, req.user.id]);
+    `, [compteurId, immeubleId, req.user.id]);
 
     if (check.rows.length === 0) {
       return res.status(404).json({
-        error: 'Not found',
-        message: 'Compteur not found or you do not have access'
+        success: false,
+        error: 'Compteur not found'
       });
     }
 
     // Update
     const result = await pool.query(`
       UPDATE compteurs_eau SET
-        numero_compteur = COALESCE($1, numero_compteur),
-        locataire_id = $2,
-        proprietaire_id = $3,
-        type_compteur = COALESCE($4, type_compteur),
-        compteur_principal_id = $5,
-        emplacement = $6,
-        actif = COALESCE($7, actif),
+        type_compteur = COALESCE($1, type_compteur),
+        numero_compteur = COALESCE($2, numero_compteur),
+        proprietaire_id = COALESCE($3, proprietaire_id),
+        emplacement = COALESCE($4, emplacement),
+        actif = COALESCE($5, actif),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $8
+      WHERE id = $6
       RETURNING *
     `, [
-      numeroCompteur, locataireId, proprietaireId,
-      typeCompteur, compteurPrincipalId, emplacement,
-      actif, id
+      type_compteur,
+      numero_compteur,
+      proprietaire_id,
+      emplacement,
+      actif,
+      compteurId
     ]);
+
+    console.log('✅ Compteur updated');
 
     res.json({
       success: true,
-      message: 'Compteur updated successfully',
       compteur: result.rows[0]
     });
-
   } catch (error) {
-    console.error('Error updating compteur:', error);
+    console.error('❌ Error updating compteur:', error);
     res.status(500).json({
-      error: 'Failed to update compteur',
-      message: error.message
+      success: false,
+      error: error.message
     });
   }
 });
 
-// DELETE /api/v1/immeubles/:immeubleId/compteurs-eau/:id
-router.delete('/:immeubleId/compteurs-eau/:id', authenticate, async (req, res) => {
-  const { immeubleId, id } = req.params;
+// =====================================================
+// DELETE - Supprimer un compteur
+// =====================================================
+router.delete('/:immeubleId/compteurs-eau/:compteurId', authenticate, async (req, res) => {
+  const { immeubleId, compteurId } = req.params;
 
-  // ✅ VALIDATION
-  if (!immeubleId || immeubleId === 'null') {
-    return res.status(400).json({
-      error: 'Invalid immeubleId'
-    });
-  }
+  console.log('🗑️ DELETE COMPTEUR:', compteurId);
 
   try {
     // Vérifier ownership
@@ -247,28 +230,26 @@ router.delete('/:immeubleId/compteurs-eau/:id', authenticate, async (req, res) =
       FROM compteurs_eau c
       JOIN immeubles i ON c.immeuble_id = i.id
       WHERE c.id = $1 AND c.immeuble_id = $2 AND i.user_id = $3
-    `, [id, immeubleId, req.user.id]);
+    `, [compteurId, immeubleId, req.user.id]);
 
     if (check.rows.length === 0) {
       return res.status(404).json({
-        error: 'Not found',
-        message: 'Compteur not found or you do not have access'
+        success: false,
+        error: 'Compteur not found'
       });
     }
 
-    // Delete
-    await pool.query('DELETE FROM compteurs_eau WHERE id = $1', [id]);
+    // Supprimer
+    await pool.query('DELETE FROM compteurs_eau WHERE id = $1', [compteurId]);
 
-    res.json({
-      success: true,
-      message: 'Compteur deleted successfully'
-    });
+    console.log('✅ Compteur deleted');
 
+    res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting compteur:', error);
+    console.error('❌ Error deleting compteur:', error);
     res.status(500).json({
-      error: 'Failed to delete compteur',
-      message: error.message
+      success: false,
+      error: error.message
     });
   }
 });

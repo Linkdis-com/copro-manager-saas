@@ -15,6 +15,7 @@ import {
 import ProprietairesForm from '../Proprietaires/ProprietairesForm';
 import LocatairesForm from '../Locataires/LocatairesForm';
 import ComptabiliteImmeuble from '../Comptabilite/ComptabiliteImmeuble';
+import ImmeubleNavigationCards from '../../components/ImmeubleNavigationCards';
 
 
 function ImmeublesDetail() {
@@ -611,32 +612,27 @@ function ImmeublesDetail() {
 
         {/* Tab Compteurs */}
         {activeTab === 'compteurs' && (
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Compteurs d'eau</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Gérez les compteurs individuels de l'immeuble
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCompteurForm(true)}
-                className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Ajouter un compteur
-              </button>
-            </div>
-
-            <CompteursEauList
-              compteurs={compteurs}
-              locataires={locataires}
-              proprietaires={proprietaires}
-              immeubleId={immeuble.id}
-              onUpdate={loadData}
-            />
-          </div>
-        )}
+  <div className="p-6">
+    <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+      <Droplets className="h-16 w-16 text-cyan-400 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        Nouveau Système de Gestion de l'Eau
+      </h3>
+      <p className="text-gray-600 mb-6 max-w-md mx-auto">
+        Accédez au système complet de gestion de l'eau avec configuration régionale, 
+        compteurs, relevés et décomptes automatiques.
+      </p>
+      <button
+        onClick={() => navigate(`/immeubles/${id}/eau`)}
+        className="inline-flex items-center px-6 py-3 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium"
+      >
+        <Droplets className="h-5 w-5 mr-2" />
+        Accéder au système Eau
+        <ChevronRight className="h-5 w-5 ml-2" />
+      </button>
+    </div>
+  </div>
+)}
       </div>
 
       {/* Bloc Comptabilité avec bouton Import intégré */}
@@ -666,19 +662,6 @@ function ImmeublesDetail() {
           onClose={() => setShowLocataireForm(false)}
           onSuccess={() => {
             setShowLocataireForm(false);
-            loadData();
-          }}
-        />
-      )}
-
-      {showCompteurForm && (
-        <CompteursEauForm
-          locataires={locataires}
-          proprietaires={proprietaires}
-          immeubleId={id}
-          onClose={() => setShowCompteurForm(false)}
-          onSuccess={() => {
-            setShowCompteurForm(false);
             loadData();
           }}
         />

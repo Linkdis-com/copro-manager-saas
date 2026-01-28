@@ -3,10 +3,6 @@ import { lazy, Suspense } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 import EauDashboard from './components/Eau/pages/EauDashboard';
-import ConfigurationImmeuble from './components/Eau/pages/ConfigurationImmeuble';
-import GestionCompteurs from './components/Eau/pages/GestionCompteurs';
-import SaisieReleves from './components/Eau/pages/SaisieReleves';
-import ResultatsDecompte from './components/Eau/pages/ResultatsDecompte';
 
 const LoadingScreen = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -77,14 +73,15 @@ function App() {
           <Route path="immeubles/:id/locataires/:locId/edit" element={<LocatairesForm />} />
           
           {/* DÉCOMPTES EAU - Dashboard global */}
-        <Route path="/immeubles/:immeubleId/eau" element={<EauDashboard />} />
-        <Route path="/immeubles/:immeubleId/eau/configuration" element={<ConfigurationImmeuble />} />
-        <Route path="/immeubles/:immeubleId/eau/compteurs" element={<GestionCompteurs />} />
-        <Route path="/immeubles/:immeubleId/eau/releves" element={<SaisieReleves />} />
-        <Route path="/immeubles/:immeubleId/eau/decomptes" element={<ResultatsDecompte />} />
-
+          //<Route path="decomptes" element={<DecomptesDashboard />} />
+          //<Route path="decomptes/nouveau" element={<DecompteCreate />} />
+          //<Route path="decomptes/:id" element={<DecompteEauDetail />} />
+          
+          {/* DÉCOMPTES EAU - Par immeuble (NOUVELLE ROUTE) */}
+          //<Route path="immeubles/:immeubleId/decomptes-eau" element={<ImmeubleDecomptes />} />
           
           {/* COMPTEURS - Configuration */}
+          <Route path="immeubles/:immeubleId/compteurs" element={<CompteursImmeuble />} />
           
           <Route path="exercices-clotures" element={<ExercicesClotures />} />
         </Route>

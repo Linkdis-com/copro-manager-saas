@@ -1,12 +1,13 @@
+// =====================================================
+// MOBILE MENU
+// frontend/src/components/Layout/MobileMenu.jsx
+// =====================================================
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  Menu, X, Home, Building2, Users, UserCircle, 
-  LogOut, Lock, Droplets, Plus
-} from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-function MobileMenu() {
+function MobileMenu({ navigation }) {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -16,16 +17,6 @@ function MobileMenu() {
     navigate('/login');
     setIsOpen(false);
   };
-
-  const menuItems = [
-    { path: '/dashboard', label: 'Tableau de bord', icon: Home },
-    { path: '/immeubles', label: 'Immeubles', icon: Building2 },
-    { path: '/proprietaires', label: 'Propriétaires', icon: UserCircle },
-    { path: '/locataires', label: 'Locataires', icon: Users },
-    { path: '/decomptes', label: 'Décomptes d\'eau', icon: Droplets },
-    { path: '/decomptes/nouveau', label: 'Nouveau décompte', icon: Plus },
-    { path: '/exercices-clotures', label: 'Exercices clôturés', icon: Lock },
-  ];
 
   return (
     <>
@@ -71,17 +62,19 @@ function MobileMenu() {
         {user && (
           <div className="p-4 bg-gray-50 border-b border-gray-200">
             <p className="text-sm text-gray-500">Connecté en tant que</p>
-            <p className="font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+            <p className="font-medium text-gray-900">
+              {user.firstName || user.prenom} {user.lastName || user.nom}
+            </p>
             <p className="text-xs text-gray-500">{user.email}</p>
           </div>
         )}
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
-          {menuItems.map((item) => (
+        <nav className="p-4 space-y-1 flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+          {navigation.map((item) => (
             <NavLink
-              key={item.path}
-              to={item.path}
+              key={item.name}
+              to={item.to}
               onClick={() => setIsOpen(false)}
               className={({ isActive }) =>
                 `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
@@ -92,7 +85,7 @@ function MobileMenu() {
               }
             >
               <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <span>{item.name}</span>
             </NavLink>
           ))}
         </nav>

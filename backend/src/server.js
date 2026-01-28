@@ -4,10 +4,9 @@ import cors from 'cors';
 import pg from 'pg';
 import authRoutes from './routes/auth.routes.js';
 import immeublesRoutes from './routes/immeubles.routes.js';
+import proprietairesRoutes from './routes/proprietaires.routes.js';
 import devRoutes from './routes/dev.routes.js';
 import decomptesRoutes from './routes/decomptes.routes.js';
-import tarifsEauRoutes from './routes/tarifs-eau.routes.js';
-import compteursEauRoutes from './routes/compteurs-eau.routes.js';
 import relevesRoutes from './routes/releves.routes.js';
 import exercicesRoutes from './routes/exercices.routes.js';
 import migrationsRoutes from './routes/migrations.routes.js';
@@ -20,9 +19,12 @@ import adminRoutes from './routes/admin.routes.js';
 import invoicesRoutes from './routes/invoices.routes.js';
 import adminSetupMigration from './routes/admin-setup-migration.routes.js';
 import adminTablesSetup from './routes/admin-tables-setup.routes.js';
-import dbMigrationsRoutes from './routes/db-migrations.routes.js';
 
-
+// Routes EAU
+import eauConfigRoutes from './routes/eau/configuration.routes.js';
+import eauRelevesRoutes from './routes/eau/releves.routes.js';
+import setupRoutes from './routes/setup.routes.js';
+import compteursEauRoutes from './routes/compteurs-eau.routes.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -68,7 +70,6 @@ app.use('/api/v1/immeubles/:immeubleId/exercices', exercicesRoutes);
 app.use('/api/v1/immeubles', immeublesRoutes);
 app.use('/api/v1/dev', devRoutes);
 app.use('/api/v1/decomptes', decomptesRoutes);
-app.use('/api/v1/tarifs-eau', tarifsEauRoutes);
 app.use('/api/v1/migrations', migrationsRoutes);
 app.use('/api/v1/migrations', subscriptionMigrationRoutes);
 app.use('/api/v1/subscriptions', subscriptionsRoutes);
@@ -79,9 +80,11 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/invoices', invoicesRoutes);
 app.use('/api/v1/migrations', adminSetupMigration);
 app.use('/api/v1/admin-setup', adminTablesSetup); 
+// Routes EAU
+app.use('/api/v1/eau/configuration', eauConfigRoutes);
+app.use('/api/v1/eau/releves', eauRelevesRoutes);
+app.use('/api/setup', setupRoutes);
 app.use('/api/v1/immeubles', compteursEauRoutes);
-app.use('/api/v1/db-migrations', dbMigrationsRoutes);
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
