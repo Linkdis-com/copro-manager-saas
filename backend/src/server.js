@@ -21,9 +21,9 @@ import adminSetupMigration from './routes/admin-setup-migration.routes.js';
 import adminTablesSetup from './routes/admin-tables-setup.routes.js';
 
 // Routes EAU
+import setupRoutes from './routes/setup.routes.js';
 import eauConfigRoutes from './routes/eau/configuration.routes.js';
 import eauRelevesRoutes from './routes/eau/releves.routes.js';
-import setupRoutes from './routes/setup.routes.js';
 import compteursEauRoutes from './routes/compteurs-eau.routes.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -81,9 +81,9 @@ app.use('/api/v1/invoices', invoicesRoutes);
 app.use('/api/v1/migrations', adminSetupMigration);
 app.use('/api/v1/admin-setup', adminTablesSetup); 
 // Routes EAU
+app.use('/api/setup', setupRoutes);
 app.use('/api/v1/eau/configuration', eauConfigRoutes);
 app.use('/api/v1/eau/releves', eauRelevesRoutes);
-app.use('/api/setup', setupRoutes);
 app.use('/api/v1/immeubles', compteursEauRoutes);
 // 404 handler
 app.use((req, res) => {

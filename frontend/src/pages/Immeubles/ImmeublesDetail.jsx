@@ -611,7 +611,7 @@ function ImmeublesDetail() {
         )}
 
         {/* Tab Compteurs */}
-        {activeTab === 'compteurs' && (
+{activeTab === 'compteurs' && (
   <div className="p-6">
     <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
       <Droplets className="h-16 w-16 text-cyan-400 mx-auto mb-4" />
@@ -619,12 +619,12 @@ function ImmeublesDetail() {
         Nouveau Système de Gestion de l'Eau
       </h3>
       <p className="text-gray-600 mb-6 max-w-md mx-auto">
-        Accédez au système complet de gestion de l'eau avec configuration régionale, 
+        Accédez au système complet avec configuration régionale, 
         compteurs, relevés et décomptes automatiques.
       </p>
       <button
         onClick={() => navigate(`/immeubles/${id}/eau`)}
-        className="inline-flex items-center px-6 py-3 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-lg hover:shadow-xl transition-all font-medium"
+        className="inline-flex items-center px-6 py-3 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-lg transition-all font-medium"
       >
         <Droplets className="h-5 w-5 mr-2" />
         Accéder au système Eau
