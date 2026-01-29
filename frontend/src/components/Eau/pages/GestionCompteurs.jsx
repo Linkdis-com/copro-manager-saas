@@ -1,11 +1,13 @@
 // =====================================================
 // 🔢 PAGE GESTION COMPTEURS
 // frontend/src/components/Eau/pages/GestionCompteurs.jsx
+// VERSION COMPLÈTE AVEC AXIOS
 // =====================================================
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Edit, Trash2, Droplets, AlertCircle, Save, X } from 'lucide-react';
 import DivisonnaireSchema from '../schemas/DivisonnaireSchema';
+import { eauConfigService, compteursEauService, proprietairesService } from '../../../services/api';
 
 export default function GestionCompteurs() {
   const { immeubleId } = useParams();
@@ -36,26 +38,16 @@ export default function GestionCompteurs() {
     try {
       setLoading(true);
       
-      // Config
-      const configRes = await fetch(`/api/v1/eau/configuration/${immeubleId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const configData = await configRes.json();
-      setConfig(configData.config);
+      // ✅ Charger tout en parallèle avec axios
+      const [configRes, compteursRes, propRes] = await Promise.all([
+        eauConfigService.getConfig(immeubleId),
+        compteursEauService.getByImmeuble(immeubleId),
+        proprietairesService.getByImmeuble(immeubleId)
+      ]);
       
-      // Compteurs
-      const compteursRes = await fetch(`/api/v1/immeubles/${immeubleId}/compteurs-eau`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const compteursData = await compteursRes.json();
-      setCompteurs(compteursData.compteurs || []);
-      
-      // Propriétaires
-      const propRes = await fetch(`/api/v1/immeubles/${immeubleId}/proprietaires`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const propData = await propRes.json();
-      setProprietaires(propData.proprietaires || []);
+      setConfig(configRes.data.config);
+      setCompteurs(compteursRes.data.compteurs || []);
+      setProprietaires(propRes.data.proprietaires || []);
       
     } catch (error) {
       console.error('Error loading data:', error);
@@ -65,6 +57,7 @@ export default function GestionCompteurs() {
     }
   };
 
+  // ✅ CORRIGÉ : handleSave avec AXIOS
   const handleSave = async () => {
     try {
       setError(null);
@@ -80,58 +73,38 @@ export default function GestionCompteurs() {
         return;
       }
 
-      const url = editingId 
-        ? `/api/v1/immeubles/${immeubleId}/compteurs-eau/${editingId}`
-        : `/api/v1/immeubles/${immeubleId}/compteurs-eau`;
-      
-      const method = editingId ? 'PATCH' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+      // ✅ AXIOS : Création ou mise à jour
+      if (editingId) {
+        await compteursEauService.update(immeubleId, editingId, formData);
+      } else {
+        await compteursEauService.create(immeubleId, formData);
       }
 
+      // Recharger et fermer
       await loadData();
       handleCancelForm();
       
     } catch (error) {
       console.error('Error saving compteur:', error);
-      setError(error.message);
+      setError(error.response?.data?.error || error.message || 'Erreur lors de la sauvegarde');
     }
   };
 
+  // ✅ CORRIGÉ : handleDelete avec AXIOS
   const handleDelete = async (compteur) => {
     if (!confirm(`Supprimer le compteur ${compteur.numero_compteur} ?`)) return;
     
     try {
       setError(null);
       
-      const response = await fetch(`/api/v1/immeubles/${immeubleId}/compteurs-eau/${compteur.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Erreur lors de la suppression');
-      }
-
+      // ✅ AXIOS : Suppression
+      await compteursEauService.delete(immeubleId, compteur.id);
+      
       await loadData();
       
     } catch (error) {
       console.error('Error deleting compteur:', error);
-      setError(error.message);
+      setError(error.response?.data?.error || error.message || 'Erreur lors de la suppression');
     }
   };
 

@@ -25,6 +25,11 @@ import setupRoutes from './routes/setup.routes.js';
 import eauConfigRoutes from './routes/eau/configuration.routes.js';
 import eauRelevesRoutes from './routes/eau/releves.routes.js';
 import compteursEauRoutes from './routes/compteurs-eau.routes.js';
+
+import fixConstraintRoutes from './routes/fix-constraint-with-data-fix.route.js';
+import debugCompteursRoutes from './routes/debug-compteurs.route.js';
+import fixDataOnlyRoutes from './routes/fix-data-only.route.js';
+import addConstraintOnlyRoutes from './routes/add-constraint-only.route.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -85,6 +90,10 @@ app.use('/api/setup', setupRoutes);
 app.use('/api/v1/eau/configuration', eauConfigRoutes);
 app.use('/api/v1/eau/releves', eauRelevesRoutes);
 app.use('/api/v1/immeubles', compteursEauRoutes);
+app.use('/api/v1', fixConstraintRoutes);
+app.use('/api/v1', debugCompteursRoutes);
+app.use('/api/v1', fixDataOnlyRoutes);
+app.use('/api/v1', addConstraintOnlyRoutes);
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

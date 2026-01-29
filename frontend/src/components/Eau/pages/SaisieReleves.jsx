@@ -1,10 +1,12 @@
 // =====================================================
 // 📊 PAGE SAISIE RELEVÉS
 // frontend/src/components/Eau/pages/SaisieReleves.jsx
+// VERSION CORRIGÉE AVEC AXIOS
 // =====================================================
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Save, AlertTriangle, CheckCircle, Droplets } from 'lucide-react';
+import { eauConfigService, compteursEauService, eauRelevesService } from '../../../services/api';
 
 export default function SaisieReleves() {
   const { immeubleId } = useParams();
@@ -35,23 +37,19 @@ export default function SaisieReleves() {
     }
   }, [releves]);
 
+  // ✅ CORRIGÉ : loadData avec AXIOS
   const loadData = async () => {
     try {
       setLoading(true);
       
-      // Config
-      const configRes = await fetch(`/api/v1/eau/configuration/${immeubleId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const configData = await configRes.json();
-      setConfig(configData.config);
+      // Charger config et compteurs en parallèle
+      const [configRes, compteursRes] = await Promise.all([
+        eauConfigService.getConfig(immeubleId),
+        compteursEauService.getByImmeuble(immeubleId)
+      ]);
       
-      // Compteurs
-      const compteursRes = await fetch(`/api/v1/immeubles/${immeubleId}/compteurs-eau`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const compteursData = await compteursRes.json();
-      const cmpts = compteursData.compteurs || [];
+      setConfig(configRes.data.config);
+      const cmpts = compteursRes.data.compteurs || [];
       setCompteurs(cmpts);
       
       // Initialiser relevés
@@ -126,6 +124,7 @@ export default function SaisieReleves() {
     });
   };
 
+  // ✅ CORRIGÉ : handleSave avec AXIOS
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -154,33 +153,22 @@ export default function SaisieReleves() {
         return;
       }
       
-      // Sauvegarder chaque relevé
-      const promises = compteurs.map(async (compteur) => {
-        const releve = releves[compteur.id];
-        
-        return fetch(`/api/v1/eau/releves/${immeubleId}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            compteur_id: compteur.id,
-            periode_debut: periode.debut,
-            periode_fin: periode.fin,
-            index_debut: parseFloat(releve.index_debut),
-            index_fin: parseFloat(releve.index_fin),
-            notes: ''
-          })
-        });
+      // ✅ Sauvegarder tous les relevés en une seule requête
+      const relevesList = compteurs.map(compteur => ({
+        compteur_id: compteur.id,
+        periode_debut: periode.debut,
+        periode_fin: periode.fin,
+        index_debut: parseFloat(releves[compteur.id].index_debut),
+        index_fin: parseFloat(releves[compteur.id].index_fin),
+        consommation: releves[compteur.id].consommation,
+        notes: ''
+      }));
+      
+      await eauRelevesService.saveReleves(immeubleId, {
+        periode_debut: periode.debut,
+        periode_fin: periode.fin,
+        releves: relevesList
       });
-      
-      const responses = await Promise.all(promises);
-      const allSuccess = responses.every(r => r.ok);
-      
-      if (!allSuccess) {
-        throw new Error('Erreur lors de la sauvegarde de certains relevés');
-      }
       
       setSuccess(true);
       
@@ -191,7 +179,7 @@ export default function SaisieReleves() {
       
     } catch (error) {
       console.error('Error saving releves:', error);
-      setError(error.message);
+      setError(error.response?.data?.error || error.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }

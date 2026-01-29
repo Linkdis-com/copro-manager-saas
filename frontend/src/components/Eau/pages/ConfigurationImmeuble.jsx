@@ -1,11 +1,13 @@
 // =====================================================
 // 🌊 PAGE CONFIGURATION IMMEUBLE
 // frontend/src/components/Eau/pages/ConfigurationImmeuble.jsx
+// VERSION CORRIGÉE AVEC AXIOS + BONS IMPORTS
 // =====================================================
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, MapPin, DollarSign, Droplets } from 'lucide-react';
 import { REGIONS, getDistributeurs, getTarifsDefaut } from '../constants';
+import { eauConfigService } from '../../../services/api'; 
 import CollectifSchema from '../schemas/CollectifSchema';
 import DivisonnaireSchema from '../schemas/DivisonnaireSchema';
 import IndividuelSchema from '../schemas/IndividuelSchema';
@@ -64,63 +66,52 @@ export default function ConfigurationImmeuble() {
     }
   }, [config.region, config.distributeur]);
 
+  // ✅ CORRECTION AXIOS
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/v1/eau/configuration/${immeubleId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const data = await response.json();
+      const response = await eauConfigService.getConfig(immeubleId);
       
-      if (data.config) {
-        setConfig(data.config);
+      if (response.data.config) {
+        setConfig(response.data.config);
       }
     } catch (error) {
       console.error('Error loading config:', error);
+      // Si erreur 404, c'est normal (pas encore de config)
+      setError(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ CORRECTION AXIOS
   const handleSave = async () => {
+    // Validation
+    if (!config.region) {
+      setError('Veuillez sélectionner une région');
+      return;
+    }
+    if (!config.distributeur) {
+      setError('Veuillez sélectionner un distributeur');
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
-      setSuccess(false);
       
-      // Validation
-      if (!config.region || !config.distributeur || !config.type_comptage) {
-        setError('Région, distributeur et type de comptage sont requis');
-        return;
-      }
-
-      const response = await fetch(`/api/v1/eau/configuration/${immeubleId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(config)
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
-      }
-
+      const response = await eauConfigService.saveConfig(immeubleId, config);
+      
+      console.log('✅ Config saved:', response.data);
       setSuccess(true);
       
-      // Rediriger vers gestion compteurs après 1.5s
+      // Redirection après 1 seconde
       setTimeout(() => {
         navigate(`/immeubles/${immeubleId}/eau/compteurs`);
-      }, 1500);
-      
+      }, 1000);
     } catch (error) {
       console.error('Error saving config:', error);
-      setError(error.message);
+      setError(error.response?.data?.error || error.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }

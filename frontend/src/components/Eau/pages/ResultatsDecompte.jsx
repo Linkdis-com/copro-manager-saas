@@ -1,11 +1,13 @@
 // =====================================================
 // 📊 PAGE RÉSULTATS DÉCOMPTE
 // frontend/src/components/Eau/pages/ResultatsDecompte.jsx
+// VERSION CORRIGÉE AVEC AXIOS
 // =====================================================
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, Table as TableIcon, Loader } from 'lucide-react';
 import { calculerWallonie, calculerBruxelles, calculerFlandre, calculerM3Gratuits } from '../calculs';
+import { eauConfigService, compteursEauService, eauRelevesService, proprietairesService } from '../../../services/api';
 
 export default function ResultatsDecompte() {
   const { immeubleId } = useParams();
@@ -24,40 +26,31 @@ export default function ResultatsDecompte() {
     loadAndCalculate();
   }, [immeubleId]);
 
+  // ✅ CORRIGÉ : loadAndCalculate avec AXIOS
   const loadAndCalculate = async () => {
     try {
       setLoading(true);
       
-      // Config
-      const configRes = await fetch(`/api/v1/eau/configuration/${immeubleId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const configData = await configRes.json();
-      setConfig(configData.config);
+      // ✅ Charger toutes les données en parallèle avec axios
+      const [configRes, compteursRes, relevesRes, propRes] = await Promise.all([
+        eauConfigService.getConfig(immeubleId),
+        compteursEauService.getByImmeuble(immeubleId),
+        eauRelevesService.getReleves(immeubleId),
+        proprietairesService.getByImmeuble(immeubleId)
+      ]);
       
-      // Compteurs
-      const compteursRes = await fetch(`/api/v1/immeubles/${immeubleId}/compteurs-eau`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const compteursData = await compteursRes.json();
-      setCompteurs(compteursData.compteurs || []);
+      const cfg = configRes.data.config;
+      const cmpts = compteursRes.data.compteurs || [];
+      const rels = relevesRes.data.releves || [];
+      const props = propRes.data.proprietaires || [];
       
-      // Relevés (derniers)
-      const relevesRes = await fetch(`/api/v1/eau/releves/${immeubleId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const relevesData = await relevesRes.json();
-      setReleves(relevesData.releves || []);
-      
-      // Propriétaires
-      const propRes = await fetch(`/api/v1/immeubles/${immeubleId}/proprietaires`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const propData = await propRes.json();
-      setProprietaires(propData.proprietaires || []);
+      setConfig(cfg);
+      setCompteurs(cmpts);
+      setReleves(rels);
+      setProprietaires(props);
       
       // Calculer décomptes
-      await calculateDecomptes(configData.config, compteursData.compteurs, relevesData.releves, propData.proprietaires);
+      await calculateDecomptes(cfg, cmpts, rels, props);
       
     } catch (error) {
       console.error('Error loading data:', error);

@@ -215,6 +215,16 @@ export const subscriptionsService = {
     api.post('/subscriptions/change-plan', { planCode, billingCycle }),
   getInvoices: () => api.get('/subscriptions/invoices'),
 };
+// ✅ SERVICES SYSTÈME EAU
+export const eauConfigService = {
+  getConfig: (immeubleId) => api.get(`/eau/configuration/${immeubleId}`),
+  saveConfig: (immeubleId, config) => api.post(`/eau/configuration/${immeubleId}`, config),
+  updateConfig: (immeubleId, config) => api.patch(`/eau/configuration/${immeubleId}`, config),
+};
 
+export const eauRelevesService = {
+  saveReleves: (immeubleId, data) => api.post(`/eau/releves/${immeubleId}`, data),
+  getReleves: (immeubleId, params) => api.get(`/eau/releves/${immeubleId}`, { params }),
+};
 
 export default api;

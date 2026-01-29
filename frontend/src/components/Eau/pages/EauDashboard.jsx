@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Droplets, Settings, FileText, TrendingUp, ArrowRight } from 'lucide-react';
 import { TYPES_COMPTAGE } from '../constants';
+import { eauConfigService } from '../../../services/api';
 
 export default function EauDashboard() {
   const { immeubleId } = useParams();
@@ -18,22 +19,18 @@ export default function EauDashboard() {
     loadConfig();
   }, [immeubleId]);
 
-  const loadConfig = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/v1/eau/configuration/${immeubleId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const data = await response.json();
-      setConfig(data.config);
-    } catch (error) {
-      console.error('Error loading config:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadConfig = async () => {
+  try {
+    setLoading(true);
+    const response = await eauConfigService.getConfig(immeubleId);
+    setConfig(response.data.config);
+  } catch (error) {
+    console.error('Error loading config:', error);
+    setConfig(null);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (
