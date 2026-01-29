@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import pool from '../config/database.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
 import { validateRegistration, validateLogin } from '../utils/validators.js';
