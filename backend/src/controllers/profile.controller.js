@@ -1,5 +1,5 @@
 import pool from '../config/database.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 /**
  * Mettre à jour le profil utilisateur

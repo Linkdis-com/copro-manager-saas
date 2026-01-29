@@ -1,5 +1,5 @@
 import pool from '../config/database.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { sendPasswordResetEmail, sendPasswordChangedEmail } from '../services/email.service.js';
 
