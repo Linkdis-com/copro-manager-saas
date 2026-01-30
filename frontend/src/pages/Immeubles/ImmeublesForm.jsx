@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { immeublesService } from '../../services/api';
-import { X, AlertCircle, Save } from 'lucide-react';
+import { X, AlertCircle, Save, Info, TrendingUp } from 'lucide-react';
+import { SubscriptionLimitError } from '../../components/SubscriptionLimitError';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 function ImmeublesForm({ immeuble, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -15,7 +18,15 @@ function ImmeublesForm({ immeuble, onClose, onSuccess }) {
   });
   
   const [errors, setErrors] = useState([]);
+  const [subscriptionError, setSubscriptionError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+
+  // Charger les données d'abonnement
+  useEffect(() => {
+    loadSubscription();
+  }, []);
 
   useEffect(() => {
     if (immeuble) {
@@ -32,12 +43,34 @@ function ImmeublesForm({ immeuble, onClose, onSuccess }) {
     }
   }, [immeuble]);
 
+  const loadSubscription = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/v1/subscription/current`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSubscription(data);
+      }
+    } catch (error) {
+      console.error('Error loading subscription:', error);
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    // Réinitialiser l'erreur de subscription quand on change le nombre d'appartements
+    if (name === 'nombreAppartements') {
+      setSubscriptionError(null);
+    }
   };
 
   const validateForm = () => {
@@ -75,6 +108,7 @@ function ImmeublesForm({ immeuble, onClose, onSuccess }) {
 
     setLoading(true);
     setErrors([]);
+    setSubscriptionError(null);
 
     try {
       const data = {
@@ -97,18 +131,53 @@ function ImmeublesForm({ immeuble, onClose, onSuccess }) {
       onSuccess();
     } catch (err) {
       console.error('Error saving immeuble:', err);
-      if (err.response?.data?.errors) {
+      
+      // Gérer les erreurs de limites d'abonnement
+      if (err.response?.data?.error?.includes('limit') || err.response?.data?.error?.includes('units')) {
+        setSubscriptionError(err.response.data);
+      } else if (err.response?.data?.errors) {
         setErrors(Array.isArray(err.response.data.errors) 
           ? err.response.data.errors 
           : [err.response.data.message || 'Erreur lors de l\'enregistrement']
         );
       } else {
-        setErrors(['Erreur lors de l\'enregistrement de l\'immeuble']);
+        setErrors([err.response?.data?.message || 'Erreur lors de l\'enregistrement de l\'immeuble']);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // Calculer les unités disponibles et le coût
+  const getUnitsInfo = () => {
+    if (!subscription || !subscription.subscription) return null;
+
+    const sub = subscription.subscription;
+    const usage = subscription.usage || { unites: 0 };
+    const plan = sub.plan || {};
+
+    const totalUnits = sub.total_units || 0;
+    const usedUnits = usage.unites || 0;
+    const availableUnits = totalUnits - usedUnits;
+    const neededUnits = parseInt(formData.nombreAppartements) || 0;
+    const unitsMissing = Math.max(0, neededUnits - availableUnits);
+    
+    const pricePerUnit = plan.price_monthly || (plan.is_professional ? 4 : 2);
+    const isPro = plan.is_professional || false;
+
+    return {
+      totalUnits,
+      usedUnits,
+      availableUnits,
+      neededUnits,
+      unitsMissing,
+      pricePerUnit,
+      isPro,
+      hasEnough: unitsMissing === 0
+    };
+  };
+
+  const unitsInfo = getUnitsInfo();
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -129,26 +198,104 @@ function ImmeublesForm({ immeuble, onClose, onSuccess }) {
         {/* Form - Scrollable content */}
         <div className="flex-1 overflow-y-auto">
           <form onSubmit={handleSubmit} className="p-6">
-            {/* Errors */}
-            {errors.length > 0 && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex">
-                <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    {errors.length === 1 ? 'Erreur' : `${errors.length} erreurs`}
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <ul className="list-disc pl-5 space-y-1">
-                      {errors.map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                    </ul>
+            
+            {/* Erreur de subscription (avec bouton upgrade) */}
+            {subscriptionError && (
+              <div className="mb-6">
+                <SubscriptionLimitError 
+                  error={subscriptionError}
+                  onDismiss={() => setSubscriptionError(null)}
+                />
+              </div>
+            )}
+
+            {/* Erreurs de validation */}
+            {errors.length > 0 && !subscriptionError && (
+              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      {errors.length === 1 ? 'Erreur' : `${errors.length} erreurs`}
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        {errors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Avertissement unités insuffisantes (AVANT soumission) */}
+            {!loadingSubscription && unitsInfo && !unitsInfo.hasEnough && !subscriptionError && (
+              <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-amber-900 mb-2">
+                      ⚠️ Attention : Unités insuffisantes
+                    </h3>
+                    <p className="text-sm text-amber-800 mb-2">
+                      Vous essayez de créer {unitsInfo.neededUnits} appartement{unitsInfo.neededUnits > 1 ? 's' : ''} 
+                      mais vous n'avez que {unitsInfo.availableUnits} unité{unitsInfo.availableUnits > 1 ? 's' : ''} disponible{unitsInfo.availableUnits > 1 ? 's' : ''}.
+                    </p>
+                    <div className="bg-white rounded-lg p-3 mb-3 border border-amber-200">
+                      <p className="text-sm font-medium text-amber-900 mb-1">
+                        Vous devez acheter {unitsInfo.unitsMissing} unité{unitsInfo.unitsMissing > 1 ? 's' : ''} supplémentaire{unitsInfo.unitsMissing > 1 ? 's' : ''} :
+                      </p>
+                      <div className="text-sm text-amber-800 space-y-1">
+                        <p>
+                          • Prix mensuel : {unitsInfo.unitsMissing} × {unitsInfo.pricePerUnit}€ {unitsInfo.isPro ? 'HTVA' : 'TTC'} = 
+                          <span className="font-bold ml-1">
+                            {(unitsInfo.unitsMissing * unitsInfo.pricePerUnit).toFixed(2)}€/mois
+                          </span>
+                        </p>
+                        <p>
+                          • Prix annuel : 
+                          <span className="font-bold ml-1 text-amber-900">
+                            {(unitsInfo.unitsMissing * unitsInfo.pricePerUnit * 12).toFixed(2)}€/an
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        window.location.href = '/parametres?tab=abonnement';
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
+                    >
+                      Acheter {unitsInfo.unitsMissing} unité{unitsInfo.unitsMissing > 1 ? 's' : ''}
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Info unités disponibles */}
+            {!loadingSubscription && unitsInfo && unitsInfo.hasEnough && (
+              <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 bg-green-100 rounded-full flex-shrink-0">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-green-800">
+                      ✓ Vous avez <strong>{unitsInfo.availableUnits}</strong> unité{unitsInfo.availableUnits > 1 ? 's' : ''} disponible{unitsInfo.availableUnits > 1 ? 's' : ''}.
+                      Cet immeuble utilisera <strong>{unitsInfo.neededUnits}</strong> unité{unitsInfo.neededUnits > 1 ? 's' : ''}.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
           <div className="space-y-6">
             {/* Informations générales */}
@@ -261,7 +408,12 @@ function ImmeublesForm({ immeuble, onClose, onSuccess }) {
 
                 <div>
                   <label htmlFor="nombreAppartements" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre d'appartements *
+                    Nombre d'appartements * 
+                    {unitsInfo && (
+                      <span className="text-xs text-gray-500 ml-1">
+                        (= {formData.nombreAppartements || 0} unité{formData.nombreAppartements > 1 ? 's' : ''})
+                      </span>
+                    )}
                   </label>
                   <input
                     type="number"
@@ -298,7 +450,7 @@ function ImmeublesForm({ immeuble, onClose, onSuccess }) {
               </div>
             </div>
 
-            {/* Info Eau - DÉPLACÉ VERS DÉCOMPTES */}
+            {/* Info Eau */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
                 💧 <strong>Configuration de l'eau :</strong> La gestion complète de l'eau (mode de comptage, tarifs, fournisseur) 
@@ -318,7 +470,7 @@ function ImmeublesForm({ immeuble, onClose, onSuccess }) {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (unitsInfo && !unitsInfo.hasEnough)}
               className="flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (

@@ -1,148 +1,247 @@
 import pool from '../config/database.js';
 
-export async function getAllImmeubles(req, res) {
+/**
+ * Récupérer tous les immeubles de l'utilisateur connecté
+ */
+export const getImmeubles = async (req, res) => {
   try {
+    // ✅ Filtre seulement les immeubles NON archivés
     const result = await pool.query(
-      `SELECT i.*, COUNT(p.id) as nombre_proprietaires_actifs,
-       COALESCE(SUM(CASE WHEN p.actif = true THEN 1 ELSE 0 END), 0) as unites_utilisees
-       FROM immeubles i LEFT JOIN proprietaires p ON i.id = p.immeuble_id AND p.actif = true
-       WHERE i.user_id = $1 AND i.archived_at IS NULL GROUP BY i.id ORDER BY i.created_at DESC`,
+      `SELECT * FROM immeubles 
+       WHERE user_id = $1 AND archived_at IS NULL
+       ORDER BY created_at DESC`,
       [req.user.id]
     );
-    res.json({ success: true, immeubles: result.rows, count: result.rows.length });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to fetch', message: error.message });
-  }
-}
 
-export async function getImmeuble(req, res) {
+    res.json({ immeubles: result.rows });
+  } catch (error) {
+    console.error('Error fetching immeubles:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des immeubles' });
+  }
+};
+
+/**
+ * Récupérer un immeuble par ID
+ */
+export const getImmeubleById = async (req, res) => {
   try {
+    const { id } = req.params;
+
     const result = await pool.query(
-      `SELECT i.*, COUNT(p.id) as nombre_proprietaires_actifs,
-       COALESCE(SUM(CASE WHEN p.actif = true THEN 1 ELSE 0 END), 0) as unites_utilisees
-       FROM immeubles i LEFT JOIN proprietaires p ON i.id = p.immeuble_id AND p.actif = true
-       WHERE i.id = $1 AND i.user_id = $2 AND i.archived_at IS NULL GROUP BY i.id`,
-      [req.params.id, req.user.id]
+      `SELECT * FROM immeubles 
+       WHERE id = $1 AND user_id = $2 AND archived_at IS NULL`,
+      [id, req.user.id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-    res.json({ success: true, immeuble: result.rows[0] });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to fetch', message: error.message });
-  }
-}
 
-export async function createImmeuble(req, res) {
-  const { nom, adresse, codePostal, ville, pays = 'BE', region = 'brussels',
-    nombreAppartements, systemeRepartition = 'milliemes', chargesMensuelles = 0,
-    datePrelevementCharges = 5, seuilTresorerieMin = 1000 } = req.body;
-
-  if (!nom || !nombreAppartements) return res.status(400).json({ error: 'nom and nombreAppartements required' });
-  if (nombreAppartements < 1) return res.status(400).json({ error: 'nombreAppartements must be >= 1' });
-
-  const validRegions = ['brussels', 'wallonia', 'flanders'];
-  if (!validRegions.includes(region)) return res.status(400).json({ error: `region must be: ${validRegions.join(', ')}` });
-
-  const validSystemes = ['milliemes', 'parts'];
-  if (!validSystemes.includes(systemeRepartition)) return res.status(400).json({ error: `systemeRepartition must be: ${validSystemes.join(', ')}` });
-
-  try {
-    const subscription = await pool.query('SELECT * FROM subscriptions WHERE user_id = $1 AND status = $2', [req.user.id, 'active']);
-    if (subscription.rows.length === 0) return res.status(403).json({ error: 'No active subscription' });
-
-    const sub = subscription.rows[0];
-    const existingImmeubles = await pool.query('SELECT COUNT(*) as count FROM immeubles WHERE user_id = $1 AND archived_at IS NULL', [req.user.id]);
-    const immeublesCount = parseInt(existingImmeubles.rows[0].count);
-
-    if (sub.plan !== 'premium' && immeublesCount >= 1) return res.status(403).json({ error: `${sub.plan} plan allows only 1 immeuble` });
-    if (sub.max_units && (sub.current_units + nombreAppartements) > sub.max_units) {
-      return res.status(403).json({ error: 'Unit limit reached', message: `Would exceed limit of ${sub.max_units} units` });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Immeuble non trouvé' });
     }
 
-    const result = await pool.query(
-      `INSERT INTO immeubles (user_id, nom, adresse, code_postal, ville, pays, region, nombre_appartements, 
-       systeme_repartition, charges_mensuelles, date_prelevement_charges, seuil_tresorerie_min)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-      [req.user.id, nom, adresse, codePostal, ville, pays, region, nombreAppartements, systemeRepartition,
-       chargesMensuelles, datePrelevementCharges, seuilTresorerieMin]
+    res.json({ immeuble: result.rows[0] });
+  } catch (error) {
+    console.error('Error fetching immeuble:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération de l\'immeuble' });
+  }
+};
+
+/**
+ * Créer un nouvel immeuble
+ */
+export const createImmeuble = async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const {
+      nom,
+      adresse,
+      codePostal,
+      ville,
+      region,
+      nombreAppartements,
+      totalMilliemes,
+      systemeRepartition
+    } = req.body;
+
+    await client.query('BEGIN');
+
+    // Créer l'immeuble
+    const immeubleResult = await client.query(
+      `INSERT INTO immeubles (
+        user_id, nom, adresse, code_postal, ville, region,
+        nombre_appartements, total_milliemes, systeme_repartition
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *`,
+      [req.user.id, nom, adresse, codePostal, ville, region, 
+       nombreAppartements, totalMilliemes, systemeRepartition]
     );
 
-    await pool.query('UPDATE subscriptions SET current_units = current_units + $1 WHERE user_id = $2', [nombreAppartements, req.user.id]);
-    console.log(`✅ Immeuble created: ${nom} by ${req.user.email}`);
-    res.status(201).json({ success: true, immeuble: result.rows[0] });
+    const immeuble = immeubleResult.rows[0];
+
+    // ✅ CORRECTION : Utiliser total_units au lieu de current_units
+    // Incrémenter les unités utilisées dans l'abonnement
+    await client.query(
+      `UPDATE subscriptions 
+       SET total_units = total_units + $1
+       WHERE user_id = $2`,
+      [nombreAppartements, req.user.id]
+    );
+
+    await client.query('COMMIT');
+
+    res.status(201).json({ 
+      message: 'Immeuble créé avec succès',
+      immeuble 
+    });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to create', message: error.message });
+    await client.query('ROLLBACK');
+    console.error('Error creating immeuble:', error);
+    res.status(500).json({ error: 'Erreur lors de la création de l\'immeuble' });
+  } finally {
+    client.release();
   }
-}
+};
 
-export async function updateImmeuble(req, res) {
-  const { id } = req.params;
-  const { nom, adresse, codePostal, ville, pays, region, nombreAppartements, systemeRepartition,
-    chargesMensuelles, datePrelevementCharges, seuilTresorerieMin, mode_comptage_eau, numero_compteur_principal } = req.body;
-
-  if (region && !['brussels', 'wallonia', 'flanders'].includes(region)) {
-    return res.status(400).json({ error: 'Invalid region' });
-  }
-  if (systemeRepartition && !['milliemes', 'parts'].includes(systemeRepartition)) {
-    return res.status(400).json({ error: 'Invalid systemeRepartition' });
-  }
-
+/**
+ * Mettre à jour un immeuble
+ */
+export const updateImmeuble = async (req, res) => {
+  const client = await pool.connect();
+  
   try {
-    const existing = await pool.query('SELECT * FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL', [id, req.user.id]);
-    if (existing.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const { id } = req.params;
+    const {
+      nom,
+      adresse,
+      codePostal,
+      ville,
+      region,
+      nombreAppartements,
+      totalMilliemes,
+      systemeRepartition
+    } = req.body;
 
-    const oldImmeuble = existing.rows[0];
+    await client.query('BEGIN');
 
-    if (nombreAppartements && nombreAppartements !== oldImmeuble.nombre_appartements) {
-      const subscription = await pool.query('SELECT * FROM subscriptions WHERE user_id = $1 AND status = $2', [req.user.id, 'active']);
-      if (subscription.rows.length > 0) {
-        const sub = subscription.rows[0];
-        const difference = nombreAppartements - oldImmeuble.nombre_appartements;
-        const newTotal = sub.current_units + difference;
-        if (sub.max_units && newTotal > sub.max_units) {
-          return res.status(403).json({ error: 'Unit limit reached' });
-        }
-        await pool.query('UPDATE subscriptions SET current_units = current_units + $1 WHERE user_id = $2', [difference, req.user.id]);
-      }
+    // Vérifier que l'immeuble appartient bien à l'utilisateur
+    const checkResult = await client.query(
+      'SELECT nombre_appartements FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
+      [id, req.user.id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Immeuble non trouvé' });
     }
 
-    // ✅ SANS total_milliemes
-    const result = await pool.query(
-      `UPDATE immeubles SET
-        nom = COALESCE($1, nom), adresse = COALESCE($2, adresse), code_postal = COALESCE($3, code_postal),
-        ville = COALESCE($4, ville), pays = COALESCE($5, pays), region = COALESCE($6, region),
-        nombre_appartements = COALESCE($7, nombre_appartements), systeme_repartition = COALESCE($8, systeme_repartition),
-        charges_mensuelles = COALESCE($9, charges_mensuelles), date_prelevement_charges = COALESCE($10, date_prelevement_charges),
-        seuil_tresorerie_min = COALESCE($11, seuil_tresorerie_min), mode_comptage_eau = COALESCE($12, mode_comptage_eau),
-        numero_compteur_principal = COALESCE($13, numero_compteur_principal), updated_at = CURRENT_TIMESTAMP
-      WHERE id = $14 AND user_id = $15 RETURNING *`,
-      [nom, adresse, codePostal, ville, pays, region, nombreAppartements, systemeRepartition, chargesMensuelles,
-       datePrelevementCharges, seuilTresorerieMin, mode_comptage_eau, numero_compteur_principal, id, req.user.id]
+    const oldNombreAppartements = checkResult.rows[0].nombre_appartements;
+    const difference = nombreAppartements - oldNombreAppartements;
+
+    // Mettre à jour l'immeuble
+    const result = await client.query(
+      `UPDATE immeubles 
+       SET nom = $1, adresse = $2, code_postal = $3, ville = $4, region = $5,
+           nombre_appartements = $6, total_milliemes = $7, systeme_repartition = $8,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $9 AND user_id = $10 AND archived_at IS NULL
+       RETURNING *`,
+      [nom, adresse, codePostal, ville, region, nombreAppartements, 
+       totalMilliemes, systemeRepartition, id, req.user.id]
     );
 
-    console.log(`✅ Immeuble updated: ${id}`);
-    res.json({ success: true, immeuble: result.rows[0] });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to update', message: error.message });
-  }
-}
+    // ✅ CORRECTION : Utiliser total_units au lieu de current_units
+    // Ajuster les unités dans l'abonnement si le nombre d'appartements a changé
+    if (difference !== 0) {
+      await client.query(
+        `UPDATE subscriptions 
+         SET total_units = total_units + $1
+         WHERE user_id = $2`,
+        [difference, req.user.id]
+      );
+    }
 
-export async function deleteImmeuble(req, res) {
+    await client.query('COMMIT');
+
+    res.json({ 
+      message: 'Immeuble mis à jour avec succès',
+      immeuble: result.rows[0]
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error updating immeuble:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de l\'immeuble' });
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Supprimer un immeuble (HARD DELETE - Option A)
+ */
+export const deleteImmeuble = async (req, res) => {
+  const client = await pool.connect();
+  
   try {
-    const existing = await pool.query('SELECT * FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL', [req.params.id, req.user.id]);
-    if (existing.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const { id } = req.params;
 
-    const immeuble = existing.rows[0];
-    await pool.query('UPDATE immeubles SET archived_at = CURRENT_TIMESTAMP WHERE id = $1', [req.params.id]);
-    await pool.query('UPDATE subscriptions SET current_units = current_units - $1 WHERE user_id = $2', [immeuble.nombre_appartements, req.user.id]);
+    await client.query('BEGIN');
 
-    console.log(`✅ Immeuble archived: ${req.params.id}`);
-    res.json({ success: true });
+    // Vérifier que l'immeuble existe et récupérer le nombre d'appartements
+    const checkResult = await client.query(
+      'SELECT nombre_appartements FROM immeubles WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Immeuble non trouvé' });
+    }
+
+    const nombreAppartements = checkResult.rows[0].nombre_appartements;
+
+    // ✅ OPTION A : VRAI DELETE (suppression complète de la DB)
+    // Supprimer toutes les données liées en cascade
+    await client.query('DELETE FROM compteurs_eau WHERE immeuble_id = $1', [id]);
+    await client.query('DELETE FROM decomptes_eau WHERE immeuble_id = $1', [id]);
+    await client.query('DELETE FROM locataires WHERE immeuble_id = $1', [id]);
+    await client.query('DELETE FROM proprietaires WHERE immeuble_id = $1', [id]);
+    
+    // Supprimer l'immeuble
+    await client.query('DELETE FROM immeubles WHERE id = $1', [id]);
+
+    // ✅ CORRECTION : Utiliser total_units au lieu de current_units
+    // Décrémenter les unités dans l'abonnement
+    await client.query(
+      `UPDATE subscriptions 
+       SET total_units = GREATEST(0, total_units - $1)
+       WHERE user_id = $2`,
+      [nombreAppartements, req.user.id]
+    );
+
+    await client.query('COMMIT');
+
+    res.json({ message: 'Immeuble supprimé définitivement avec succès' });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to delete', message: error.message });
+    await client.query('ROLLBACK');
+    console.error('Error deleting immeuble:', error);
+    
+    // Gérer l'erreur de contrainte de clé étrangère
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        error: 'Impossible de supprimer cet immeuble car il contient encore des données liées.' 
+      });
+    }
+    
+    res.status(500).json({ error: 'Erreur lors de la suppression de l\'immeuble' });
+  } finally {
+    client.release();
   }
-}
+};
+
+export default {
+  getImmeubles,
+  getImmeubleById,
+  createImmeuble,
+  updateImmeuble,
+  deleteImmeuble
+};

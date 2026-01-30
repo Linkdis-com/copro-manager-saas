@@ -53,9 +53,9 @@ export function checkSubscriptionLimit(resource) {
       let maxLimit = 0;
       let resourceLabel = '';
 
-      // Récupérer les immeubles de l'utilisateur
+      // ✅ CORRIGÉ : Récupérer seulement les immeubles NON archivés
       const userImmeubles = await pool.query(
-        'SELECT id FROM immeubles WHERE user_id = $1',
+        'SELECT id FROM immeubles WHERE user_id = $1 AND archived_at IS NULL',
         [req.user.id]
       );
       const immeubleIds = userImmeubles.rows.map(i => i.id);

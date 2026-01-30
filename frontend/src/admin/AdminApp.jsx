@@ -15,6 +15,9 @@ import AdminPromos from './pages/AdminPromos';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminClientDetail from './pages/AdminClientDetail';
 import AdminImmeuble from './pages/AdminImmeuble';
+//import SubscriptionsManagement from './pages/SubscriptionsManagement';
+import SubscriptionsAdmin from './pages/SubscriptionsAdmin';
+
 
 function AdminApp() {
   return (
@@ -45,6 +48,9 @@ function AdminApp() {
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="clients/:id" element={<AdminClientDetail />} />
           <Route path="clients/:clientId/immeubles/:id" element={<AdminImmeuble />} />
+
+<Route path="/subscriptions" element={<SubscriptionsAdmin />} />
+
         </Route>
         
         {/* Route 404 */}

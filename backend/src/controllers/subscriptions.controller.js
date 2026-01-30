@@ -144,18 +144,18 @@ export async function getMySubscription(req, res) {
   }
 }
 
-// Récupérer l'utilisation actuelle de l'utilisateur
+// ✅ CORRECTION : Récupérer l'utilisation actuelle de l'utilisateur (FILTRE archived_at)
 async function getUserUsage(userId) {
   try {
-    // Compter les immeubles de l'utilisateur
+    // ✅ CORRECTION : Compter SEULEMENT les immeubles NON archivés
     const immeubles = await pool.query(
-      'SELECT COUNT(*) as count FROM immeubles WHERE user_id = $1',
+      'SELECT COUNT(*) as count FROM immeubles WHERE user_id = $1 AND archived_at IS NULL',
       [userId]
     );
 
-    // Récupérer les IDs des immeubles de l'utilisateur
+    // ✅ CORRECTION : Récupérer SEULEMENT les IDs des immeubles NON archivés
     const userImmeubles = await pool.query(
-      'SELECT id FROM immeubles WHERE user_id = $1',
+      'SELECT id FROM immeubles WHERE user_id = $1 AND archived_at IS NULL',
       [userId]
     );
     const immeubleIds = userImmeubles.rows.map(i => i.id);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   CreditCard, Building2, Users, Calendar, ArrowRight, 
-  AlertCircle, CheckCircle, Gift, FileText, Percent, ShoppingCart, Plus
+  AlertCircle, CheckCircle, Gift, FileText, Percent
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -55,22 +55,11 @@ function SubscriptionTab() {
 
   // Calculer le prix
   const calculatePrice = () => {
-    if (!subscription?.plan) return { 
-      units: 0, 
-      pricePerUnit: 0, 
-      baseYearly: 0, 
-      discountPercent: 0, 
-      discountAmount: 0, 
-      subtotal: 0, 
-      vatRate: 0, 
-      vatAmount: 0, 
-      total: 0 
-    };
+    if (!subscription?.plan) return { base: 0, discount: 0, vat: 0, total: 0 };
 
     const plan = subscription.plan;
     const units = usage.unites || 0;
-    // ✅ CORRIGÉ : Utilise price_monthly au lieu de price_per_unit
-    const pricePerUnit = parseFloat(plan.price_monthly) || 0;
+    const pricePerUnit = parseFloat(plan.price_per_unit) || 0;
     const discountPercent = discounts.length > 0 
       ? Math.max(...discounts.map(d => d.percentage))
       : 0;
@@ -153,7 +142,6 @@ function SubscriptionTab() {
   const pricing = calculatePrice();
   const plan = subscription?.plan;
   const maxImmeubles = plan?.max_immeubles === -1 ? 'Illimité' : plan?.max_immeubles;
-  const totalUnits = subscription?.total_units || 0;
 
   return (
     <div className="space-y-6">
@@ -178,12 +166,9 @@ function SubscriptionTab() {
                 <p className="text-xl font-bold text-gray-900">Plan {plan?.name}</p>
                 <p className="text-gray-600">
                   {plan?.is_professional 
-                    ? `${pricing.pricePerUnit}€ HTVA/unité/mois + TVA 21%`
-                    : `${pricing.pricePerUnit}€ TTC/unité/mois`
+                    ? `${plan?.price_per_unit}€ HTVA/unité/mois + 21% TVA`
+                    : `${plan?.price_per_unit}€ TTC/unité/mois`
                   }
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  💡 Facturation annuelle : {pricing.pricePerUnit}€ × {totalUnits} unité{totalUnits > 1 ? 's' : ''} × 12 mois
                 </p>
               </div>
             </div>
@@ -210,7 +195,7 @@ function SubscriptionTab() {
             {subscription.status === 'active' && subscription.current_period_end && (
               <div className="flex items-center gap-2 text-gray-600">
                 <Calendar className="h-4 w-4" />
-                <span>Prochain renouvellement le {formatDate(subscription.current_period_end)}</span>
+                <span>Renouvellement le {formatDate(subscription.current_period_end)}</span>
               </div>
             )}
           </div>
@@ -219,106 +204,57 @@ function SubscriptionTab() {
         )}
       </div>
 
-      {/* Utilisation - AMÉLIORÉ ✅ */}
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Votre utilisation</h2>
-          <button className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg text-sm font-medium text-primary-600 hover:bg-primary-50 border border-primary-200 transition-colors">
-            <Plus className="h-4 w-4" />
-            Acheter des unités
-          </button>
-        </div>
+      {/* Utilisation */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Votre utilisation</h2>
         
-        <div className="grid md:grid-cols-3 gap-4">
-          {/* Unités achetées */}
-          <div className="p-4 bg-white rounded-lg shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Unités achetées</span>
-              <ShoppingCart className="h-4 w-4 text-primary-500" />
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Building2 className="h-5 w-5 text-gray-500" />
+                <span className="text-gray-700">Immeubles</span>
+              </div>
+              <span className="font-bold text-gray-900">
+                {usage.immeubles} / {maxImmeubles}
+              </span>
             </div>
-            <p className="text-3xl font-bold text-primary-600">{totalUnits}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {formatAmount(totalUnits * pricing.pricePerUnit)}/mois
-            </p>
+            {plan?.max_immeubles === 1 && usage.immeubles >= 1 && (
+              <p className="text-xs text-amber-600 mt-2">
+                Limite atteinte. Passez en Pro pour gérer plusieurs immeubles.
+              </p>
+            )}
           </div>
-
-          {/* Unités utilisées */}
-          <div className="p-4 bg-white rounded-lg shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Unités utilisées</span>
-              <Users className="h-4 w-4 text-gray-500" />
+          
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Users className="h-5 w-5 text-gray-500" />
+                <span className="text-gray-700">Unités (lots)</span>
+              </div>
+              <span className="font-bold text-gray-900">{usage.unites}</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{usage.unites}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {usage.immeubles} immeuble{usage.immeubles > 1 ? 's' : ''}
-            </p>
           </div>
-
-          {/* Unités disponibles */}
-          <div className="p-4 bg-white rounded-lg shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Unités disponibles</span>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </div>
-            <p className="text-3xl font-bold text-green-600">{totalUnits - usage.unites}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              Prêtes à utiliser
-            </p>
-          </div>
-        </div>
-
-        {/* Barre de progression */}
-        <div className="mt-4">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>Utilisation des unités</span>
-            <span>{usage.unites} / {totalUnits}</span>
-          </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-primary-500 to-purple-500 transition-all duration-300"
-              style={{ width: `${totalUnits > 0 ? (usage.unites / totalUnits) * 100 : 0}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Info immeubles */}
-        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-700">Immeubles</span>
-            </div>
-            <span className="font-semibold text-gray-900">
-              {usage.immeubles} / {maxImmeubles}
-            </span>
-          </div>
-          {plan?.max_immeubles === 1 && usage.immeubles >= 1 && (
-            <p className="text-xs text-amber-600 mt-2">
-              💡 Passez en Pro pour gérer plusieurs immeubles
-            </p>
-          )}
         </div>
       </div>
 
-      {/* Tarif calculé - AMÉLIORÉ ✅ */}
+      {/* Tarif calculé */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Votre tarif <span className="text-primary-600">ANNUEL</span>
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Votre tarif annuel</h2>
         
         <div className="space-y-3">
           <div className="flex justify-between text-gray-600">
-            <span>{pricing.units} unité{pricing.units > 1 ? 's' : ''} × {formatAmount(pricing.pricePerUnit)}/mois × 12 mois</span>
-            <span className="font-medium">{formatAmount(pricing.baseYearly)}</span>
+            <span>{pricing.units} unités × {formatAmount(pricing.pricePerUnit)}/mois × 12</span>
+            <span>{formatAmount(pricing.baseYearly)}</span>
           </div>
           
           {pricing.discountPercent > 0 && (
             <div className="flex justify-between text-green-600">
               <span className="flex items-center gap-1">
                 <Percent className="h-4 w-4" />
-                Réduction parrainage ({pricing.discountPercent}%)
+                Réduction ({pricing.discountPercent}%)
               </span>
-              <span className="font-medium">-{formatAmount(pricing.discountAmount)}</span>
+              <span>-{formatAmount(pricing.discountAmount)}</span>
             </div>
           )}
           
@@ -326,25 +262,18 @@ function SubscriptionTab() {
             <>
               <div className="border-t border-gray-200 pt-2 flex justify-between text-gray-600">
                 <span>Sous-total HTVA</span>
-                <span className="font-medium">{formatAmount(pricing.subtotal)}</span>
+                <span>{formatAmount(pricing.subtotal)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>TVA ({pricing.vatRate}%)</span>
-                <span className="font-medium">{formatAmount(pricing.vatAmount)}</span>
+                <span>{formatAmount(pricing.vatAmount)}</span>
               </div>
             </>
           )}
           
           <div className="border-t-2 border-gray-900 pt-3 flex justify-between">
-            <span className="font-bold text-gray-900">Total TTC par an</span>
-            <span className="text-2xl font-bold text-primary-600">{formatAmount(pricing.total)}</span>
-          </div>
-
-          {/* Info mensuelle */}
-          <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-800">
-              💡 Soit environ <strong>{formatAmount(pricing.total / 12)}</strong> par mois
-            </p>
+            <span className="font-bold text-gray-900">Total TTC / an</span>
+            <span className="text-xl font-bold text-primary-600">{formatAmount(pricing.total)}</span>
           </div>
         </div>
       </div>
@@ -390,14 +319,13 @@ function SubscriptionTab() {
                 <span className="px-2 py-1 bg-primary-600 text-white text-xs rounded-full">Actuel</span>
               )}
             </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">
+            <p className="text-2xl font-bold text-gray-900 mb-3">
               2€ <span className="text-sm font-normal text-gray-500">TTC/unité/mois</span>
             </p>
-            <p className="text-xs text-gray-500 mb-3">Facturation annuelle : 24€/unité/an</p>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                1 immeuble maximum
+                1 immeuble
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
@@ -429,18 +357,17 @@ function SubscriptionTab() {
                 <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded-full">Actuel</span>
               )}
             </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">
+            <p className="text-2xl font-bold text-gray-900 mb-3">
               4€ <span className="text-sm font-normal text-gray-500">HTVA/unité/mois</span>
             </p>
-            <p className="text-xs text-gray-500 mb-3">Facturation annuelle : 48€ HTVA/unité/an</p>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                Multi-immeubles illimités
+                Multi-immeubles
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                TVA récupérable (21%)
+                TVA récupérable
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />

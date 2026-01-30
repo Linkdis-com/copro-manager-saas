@@ -20,8 +20,7 @@ function AdminLayout() {
   const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', exact: true },
     { path: '/clients', icon: Users, label: 'Clients' },
-    // ⭐ ABONNEMENTS EN 3ÈME POSITION (PLUS VISIBLE POUR TES TESTS)
-    { path: '/subscriptions', icon: CreditCard, label: 'Abonnements', badge: 'DEV' },
+    { path: '/subscriptions', icon: CreditCard, label: 'Abonnements' },
     { path: '/invoices', icon: Receipt, label: 'Factures' },
     { path: '/revenue', icon: TrendingUp, label: 'Revenus' },
     { path: '/exercices', icon: Unlock, label: 'Déblocage exercices' },
@@ -82,13 +81,7 @@ function AdminLayout() {
               }`}
             >
               <item.icon className="h-5 w-5" />
-              <span className="font-medium flex-1">{item.label}</span>
-              {/* Badge DEV pour Abonnements */}
-              {item.badge && (
-                <span className="px-2 py-0.5 bg-yellow-500 text-yellow-900 text-xs font-bold rounded uppercase">
-                  {item.badge}
-                </span>
-              )}
+              <span className="font-medium">{item.label}</span>
             </Link>
           ))}
         </nav>

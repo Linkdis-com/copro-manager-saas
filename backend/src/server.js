@@ -2,38 +2,65 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
+
+// =====================================================
+// 🔐 MIDDLEWARE
+// =====================================================
+import { authenticate, requireEmailVerified } from './middleware/auth.js';
+
+// =====================================================
+// 📁 ROUTES PUBLIQUES (sans authentification)
+// =====================================================
 import authRoutes from './routes/auth.routes.js';
+
+// =====================================================
+// 📁 ROUTES PROTÉGÉES (avec authentification user)
+// =====================================================
 import immeublesRoutes from './routes/immeubles.routes.js';
 import proprietairesRoutes from './routes/proprietaires.routes.js';
-import devRoutes from './routes/dev.routes.js';
 import decomptesRoutes from './routes/decomptes.routes.js';
 import relevesRoutes from './routes/releves.routes.js';
 import exercicesRoutes from './routes/exercices.routes.js';
-import migrationsRoutes from './routes/migrations.routes.js';
-import subscriptionMigrationRoutes from './routes/subscription-migration-fix.routes.js';
 import subscriptionsRoutes from './routes/subscriptions.routes.js';
-import passwordResetMigrationRoutes from './routes/password-reset-migration.routes.js';
-import pricingReferralMigration from './routes/pricing-referral-migration.routes.js';
+import subscriptionUserRoutes from './routes/subscription-user.routes.js';
 import referralRoutes from './routes/referral.routes.js';
-import adminRoutes from './routes/admin.routes.js';
 import invoicesRoutes from './routes/invoices.routes.js';
-import adminSetupMigration from './routes/admin-setup-migration.routes.js';
-import adminTablesSetup from './routes/admin-tables-setup.routes.js';
 
 // Routes EAU
-import setupRoutes from './routes/setup.routes.js';
 import eauConfigRoutes from './routes/eau/configuration.routes.js';
 import eauRelevesRoutes from './routes/eau/releves.routes.js';
 import compteursEauRoutes from './routes/compteurs-eau.routes.js';
 
-import fixConstraintRoutes from './routes/fix-constraint-with-data-fix.route.js';
-import debugCompteursRoutes from './routes/debug-compteurs.route.js';
-import fixDataOnlyRoutes from './routes/fix-data-only.route.js';
-import addConstraintOnlyRoutes from './routes/add-constraint-only.route.js';
+// =====================================================
+// 📁 ROUTES ADMIN (avec authentification admin)
+// =====================================================
+import adminRoutes from './routes/admin.routes.js';
+import adminSubscriptionsRoutes from './routes/admin-subscriptions-adapted.routes.js';
+
+// =====================================================
+// 📁 ROUTES DÉVELOPPEMENT / SETUP
+// =====================================================
+import devRoutes from './routes/dev.routes.js';
+import setupRoutes from './routes/setup.routes.js';
+
+// =====================================================
+// 📁 ROUTES MIGRATIONS (temporaires)
+// =====================================================
+import migrationsRoutes from './routes/migrations.routes.js';
+import subscriptionMigrationRoutes from './routes/subscription-migration-fix.routes.js';
+import passwordResetMigrationRoutes from './routes/password-reset-migration.routes.js';
+import pricingReferralMigration from './routes/pricing-referral-migration.routes.js';
+import adminSetupMigration from './routes/admin-setup-migration.routes.js';
+import adminTablesSetup from './routes/admin-tables-setup.routes.js';
+import createSubscriptionsTableRoutes from './routes/create-subscriptions-table.route.js';
+
+// =====================================================
+// 🚀 APP CONFIGURATION
+// =====================================================
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Middleware globaux
 app.use(cors());
 app.use(express.json());
 
@@ -43,7 +70,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Database connection
+// =====================================================
+// 💾 DATABASE CONNECTION
+// =====================================================
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? {
@@ -60,7 +89,9 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// Health check
+// =====================================================
+// 🏥 HEALTH CHECK
+// =====================================================
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -68,33 +99,71 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes
+// =====================================================
+// 📍 ROUTES PUBLIQUES (SANS AUTHENTIFICATION)
+// =====================================================
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/decomptes/:decompteId/releves', relevesRoutes);
+app.use('/api/setup', setupRoutes);
+
+// =====================================================
+// 📍 ROUTES ADMIN (PROTECTION ADMIN DANS LES ROUTES)
+// =====================================================
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/subscriptions-admin', adminSubscriptionsRoutes);
+
+// =====================================================
+// 🔐 MIDDLEWARE D'AUTHENTIFICATION
+// Toutes les routes /api/v1 APRÈS cette ligne nécessitent un token
+// =====================================================
+app.use('/api/v1', authenticate);
+
+// =====================================================
+// 📍 ROUTES PROTÉGÉES (AVEC AUTHENTIFICATION)
+// =====================================================
+
+// --- Routes Immeubles & Gestion ---
 app.use('/api/v1/immeubles/:immeubleId/exercices', exercicesRoutes);
 app.use('/api/v1/immeubles', immeublesRoutes);
-app.use('/api/v1/dev', devRoutes);
+app.use('/api/v1/immeubles', compteursEauRoutes);
+app.use('/api/v1/proprietaires', proprietairesRoutes);
+
+// --- Routes Comptabilité ---
+app.use('/api/v1/decomptes/:decompteId/releves', relevesRoutes);
 app.use('/api/v1/decomptes', decomptesRoutes);
-app.use('/api/v1/migrations', migrationsRoutes);
-app.use('/api/v1/migrations', subscriptionMigrationRoutes);
-app.use('/api/v1/subscriptions', subscriptionsRoutes);
-app.use('/api/v1/migrations', passwordResetMigrationRoutes);
-app.use('/api/v1/migrations', pricingReferralMigration);
-app.use('/api/v1/referral', referralRoutes);
-app.use('/api/v1/admin', adminRoutes);
-app.use('/api/v1/invoices', invoicesRoutes);
-app.use('/api/v1/migrations', adminSetupMigration);
-app.use('/api/v1/admin-setup', adminTablesSetup); 
-// Routes EAU
-app.use('/api/setup', setupRoutes);
+
+// --- Routes EAU ---
 app.use('/api/v1/eau/configuration', eauConfigRoutes);
 app.use('/api/v1/eau/releves', eauRelevesRoutes);
-app.use('/api/v1/immeubles', compteursEauRoutes);
-app.use('/api/v1', fixConstraintRoutes);
-app.use('/api/v1', debugCompteursRoutes);
-app.use('/api/v1', fixDataOnlyRoutes);
-app.use('/api/v1', addConstraintOnlyRoutes);
-// 404 handler
+
+// --- Routes Abonnements & Facturation (User) ---
+app.use('/api/v1/subscription', subscriptionUserRoutes);
+app.use('/api/v1', subscriptionUserRoutes);
+app.use('/api/v1/invoices', invoicesRoutes);
+
+// --- Routes Parrainage ---
+app.use('/api/v1/referral', referralRoutes);
+
+
+
+// =====================================================
+// 📍 ROUTES DÉVELOPPEMENT
+// =====================================================
+app.use('/api/v1/dev', devRoutes);
+
+// =====================================================
+// 📍 ROUTES MIGRATIONS (TEMPORAIRES)
+// =====================================================
+app.use('/api/v1/migrations', migrationsRoutes);
+app.use('/api/v1/migrations', subscriptionMigrationRoutes);
+app.use('/api/v1/migrations', passwordResetMigrationRoutes);
+app.use('/api/v1/migrations', pricingReferralMigration);
+app.use('/api/v1/migrations', adminSetupMigration);
+app.use('/api/v1/admin-setup', adminTablesSetup);
+app.use('/api/v1', createSubscriptionsTableRoutes);
+
+// =====================================================
+// ❌ 404 HANDLER
+// =====================================================
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not Found',
@@ -102,7 +171,9 @@ app.use((req, res) => {
   });
 });
 
-// Global error handler
+// =====================================================
+// 💥 GLOBAL ERROR HANDLER
+// =====================================================
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err);
   res.status(err.status || 500).json({
@@ -111,7 +182,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// =====================================================
+// 🚀 START SERVER
+// =====================================================
 app.listen(PORT, '0.0.0.0', () => {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🚀 Copro Manager API');
@@ -119,6 +192,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📡 Server running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔐 Auth endpoints: /api/v1/auth/*`);
-  console.log(`💳 Subscriptions: /api/v1/subscriptions/*`);
+  console.log(`👤 User endpoints: /api/v1/*`);
+  console.log(`👨‍💼 Admin endpoints: /api/v1/admin/*`);
+  console.log(`💳 Subscriptions: /api/v1/subscription/*`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 });

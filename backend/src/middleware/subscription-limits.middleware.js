@@ -2,17 +2,22 @@ import pool from '../config/database.js';
 
 /**
  * Middleware pour vérifier si l'utilisateur peut créer un nouvel immeuble
- * Particulier = 1 immeuble max
- * Professionnel = illimité
+ * Vérifie AUSSI les unités disponibles (STEP 1)
  */
 export async function checkImmeubleLimit(req, res, next) {
   try {
-    // Récupérer le plan de l'utilisateur
+    // Récupérer le plan et l'abonnement de l'utilisateur
     const subResult = await pool.query(`
-      SELECT p.code, p.name, p.max_immeubles, p.is_professional
+      SELECT 
+        p.code, 
+        p.name, 
+        p.max_immeubles, 
+        p.is_professional,
+        p.price_monthly,
+        s.total_units
       FROM subscriptions s
       JOIN plans p ON s.plan_id = p.id
-      WHERE s.user_id = $1
+      WHERE s.user_id = $1 AND s.status IN ('active', 'trialing')
     `, [req.user.id]);
 
     if (subResult.rows.length === 0) {
@@ -23,34 +28,88 @@ export async function checkImmeubleLimit(req, res, next) {
     }
 
     const plan = subResult.rows[0];
+    const totalUnitsPurchased = plan.total_units || 0;
 
-    // Si max_immeubles = -1, c'est illimité
-    if (plan.max_immeubles === -1) {
-      return next();
+    // ===================================
+    // VÉRIFICATION 1 : NOMBRE D'IMMEUBLES
+    // ===================================
+    
+    if (plan.max_immeubles !== -1) {
+      const countResult = await pool.query(
+        'SELECT COUNT(*) as count FROM immeubles WHERE user_id = $1 AND archived_at IS NULL',
+        [req.user.id]
+      );
+      const currentCount = parseInt(countResult.rows[0].count) || 0;
+
+      if (currentCount >= plan.max_immeubles) {
+        return res.status(403).json({
+          error: 'immeuble_limit_reached',
+          message: `Votre plan ${plan.name} est limité à ${plan.max_immeubles} immeuble${plan.max_immeubles > 1 ? 's' : ''}. Passez au plan Professionnel pour gérer plusieurs immeubles.`,
+          currentCount,
+          limit: plan.max_immeubles,
+          planCode: plan.code,
+          planName: plan.name,
+          upgradeRequired: true,
+          upgradeTo: 'professionnel'
+        });
+      }
     }
 
-    // Compter les immeubles actuels
-    const countResult = await pool.query(
-      'SELECT COUNT(*) as count FROM immeubles WHERE user_id = $1',
-      [req.user.id]
-    );
-    const currentCount = parseInt(countResult.rows[0].count) || 0;
-
-    // Vérifier la limite
-    if (currentCount >= plan.max_immeubles) {
-      return res.status(403).json({
-        error: 'immeuble_limit_reached',
-        message: `Votre plan ${plan.name} est limité à ${plan.max_immeubles} immeuble${plan.max_immeubles > 1 ? 's' : ''}. Passez au plan Professionnel pour gérer plusieurs immeubles.`,
-        currentCount,
-        limit: plan.max_immeubles,
-        planCode: plan.code,
-        planName: plan.name,
-        upgradeRequired: true,
-        upgradeTo: 'professionnel'
+    // ===================================
+    // VÉRIFICATION 2 : UNITÉS DISPONIBLES (NOUVEAU !)
+    // ===================================
+    
+    const nombreAppartements = parseInt(req.body.nombreAppartements) || 0;
+    
+    if (nombreAppartements <= 0) {
+      return res.status(400).json({
+        error: 'invalid_appartements',
+        message: 'Le nombre d\'appartements doit être supérieur à 0.'
       });
     }
 
+    // Calculer les unités déjà utilisées
+    const usedUnitsResult = await pool.query(`
+      SELECT COALESCE(SUM(nombre_appartements), 0) as used_units
+      FROM immeubles 
+      WHERE user_id = $1 AND archived_at IS NULL
+    `, [req.user.id]);
+    
+    const usedUnits = parseInt(usedUnitsResult.rows[0].used_units) || 0;
+    const availableUnits = totalUnitsPurchased - usedUnits;
+    const unitsNeeded = nombreAppartements;
+    const unitsMissing = unitsNeeded - availableUnits;
+
+    if (unitsMissing > 0) {
+      // Pas assez d'unités !
+      const pricePerUnit = plan.price_monthly;
+      const additionalCostMonthly = unitsMissing * pricePerUnit;
+      const additionalCostYearly = additionalCostMonthly * 12;
+
+      return res.status(403).json({
+        error: 'units_limit_reached',
+        message: `Vous essayez de créer ${nombreAppartements} appartement${nombreAppartements > 1 ? 's' : ''} mais vous n'avez que ${availableUnits} unité${availableUnits > 1 ? 's' : ''} disponible${availableUnits > 1 ? 's' : ''}.`,
+        details: {
+          purchased: totalUnitsPurchased,
+          used: usedUnits,
+          available: availableUnits,
+          needed: unitsNeeded,
+          missing: unitsMissing,
+          pricePerUnit: pricePerUnit,
+          additionalCostMonthly: additionalCostMonthly,
+          additionalCostYearly: additionalCostYearly,
+          planName: plan.name,
+          planCode: plan.code,
+          isProfessional: plan.is_professional
+        },
+        upgradeRequired: true,
+        action: 'buy_units'
+      });
+    }
+
+    // ✅ Tout est OK
     next();
+    
   } catch (error) {
     console.error('Error checking immeuble limit:', error);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -64,7 +123,7 @@ export async function checkImmeubleLimit(req, res, next) {
 export async function checkCanDowngradeToParticulier(req, res, next) {
   try {
     const countResult = await pool.query(
-      'SELECT COUNT(*) as count FROM immeubles WHERE user_id = $1',
+      'SELECT COUNT(*) as count FROM immeubles WHERE user_id = $1 AND archived_at IS NULL',
       [req.user.id]
     );
     const currentCount = parseInt(countResult.rows[0].count) || 0;
@@ -153,7 +212,6 @@ export async function requireActiveSubscription(req, res, next) {
 
     const sub = result.rows[0];
 
-    // Vérifier le statut
     if (sub.status === 'expired' || sub.status === 'cancelled') {
       return res.status(403).json({
         error: 'subscription_inactive',
@@ -162,7 +220,6 @@ export async function requireActiveSubscription(req, res, next) {
       });
     }
 
-    // Vérifier si la période d'essai est terminée sans paiement
     if (sub.status === 'trialing' && sub.trial_end && new Date(sub.trial_end) < new Date()) {
       return res.status(403).json({
         error: 'trial_expired',

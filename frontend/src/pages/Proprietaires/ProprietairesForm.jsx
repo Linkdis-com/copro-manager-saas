@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { proprietairesService } from '../../services/api';
 import { X, AlertCircle, Save, AlertTriangle, CheckCircle } from 'lucide-react';
 
-function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
+function ProprietairesForm({ proprietaire, immeubles = [], onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     immeubleId: '',
     typeProprietaire: 'personne_physique',
@@ -20,12 +20,9 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedImmeuble, setSelectedImmeuble] = useState(null);
-  
-  // ✅ NOUVEAU: État pour les millièmes disponibles
   const [millièmesDisponibles, setMillièmesDisponibles] = useState(1000);
   const [millièmesUtilises, setMillièmesUtilises] = useState(0);
   
-  // ✅ CORRECTION: Recharger les millièmes à chaque ouverture du formulaire
   useEffect(() => {
     if (formData.immeubleId) {
       loadMillièmesDisponibles(formData.immeubleId);
@@ -33,6 +30,11 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
   }, [formData.immeubleId, proprietaire]);
 
   useEffect(() => {
+    // ✅ SÉCURITÉ TOTALE: Vérifications complètes
+    if (!immeubles || !Array.isArray(immeubles) || immeubles.length === 0) {
+      return; // Sortir proprement si pas d'immeubles
+    }
+    
     if (proprietaire) {
       setFormData({
         immeubleId: proprietaire.immeuble_id || '',
@@ -51,11 +53,11 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
       const immeuble = immeubles.find(i => i.id === proprietaire.immeuble_id);
       setSelectedImmeuble(immeuble);
       
-      // ✅ NOUVEAU: Charger les millièmes disponibles
       if (proprietaire.immeuble_id) {
         loadMillièmesDisponibles(proprietaire.immeuble_id);
       }
-    } else if (immeubles.length > 0) {
+    } else {
+      // Immeubles existe et a au moins 1 élément (vérifié plus haut)
       setFormData(prev => ({
         ...prev,
         immeubleId: immeubles[0].id
@@ -65,18 +67,15 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
     }
   }, [proprietaire, immeubles]);
 
-  // ✅ NOUVEAU: Charger les millièmes disponibles
   const loadMillièmesDisponibles = async (immeubleId) => {
     try {
       const response = await proprietairesService.getByImmeuble(immeubleId);
       const props = response.data.proprietaires || [];
       
-      // Exclure le propriétaire en cours d'édition
       const autresProprietaires = proprietaire 
         ? props.filter(p => p.id !== proprietaire.id)
         : props;
       
-      // Calculer millièmes utilisés
       const utilises = autresProprietaires.reduce((sum, p) => {
         return sum + (p.milliemes || p.parts_coproprietaire || 0);
       }, 0);
@@ -96,6 +95,9 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
     }));
 
     if (name === 'immeubleId') {
+      // ✅ SÉCURITÉ: Vérifier que immeubles existe
+      if (!immeubles || !Array.isArray(immeubles)) return;
+      
       const immeuble = immeubles.find(i => i.id === value);
       setSelectedImmeuble(immeuble);
       loadMillièmesDisponibles(value);
@@ -107,7 +109,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
     }
   };
 
-  // ✅ NOUVEAU: Vérifier si les millièmes dépassent
   const isMillièmesExceeded = () => {
     if (!selectedImmeuble) return false;
     
@@ -119,7 +120,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
     return valeurSaisie > millièmesDisponibles;
   };
 
-  // ✅ NOUVEAU: Calculer le pourcentage pour la barre
   const getProgressPercentage = () => {
     if (!selectedImmeuble) return 0;
     
@@ -163,7 +163,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
         if (!formData.milliemes || parseFloat(formData.milliemes) <= 0) {
           newErrors.push('Les millièmes sont requis et doivent être supérieurs à 0');
         }
-        // ✅ NOUVEAU: Vérification dépassement
         if (parseFloat(formData.milliemes) > millièmesDisponibles) {
           newErrors.push(`❌ Dépassement de millièmes ! Vous avez saisi ${formData.milliemes} millièmes mais seulement ${millièmesDisponibles} millièmes sont disponibles (${millièmesUtilises} déjà utilisés sur 1000).`);
         }
@@ -171,7 +170,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
         if (!formData.partsCoproprietaire || parseInt(formData.partsCoproprietaire) <= 0) {
           newErrors.push('Le nombre de parts est requis et doit être supérieur à 0');
         }
-        // ✅ NOUVEAU: Vérification dépassement
         if (parseInt(formData.partsCoproprietaire) > millièmesDisponibles) {
           newErrors.push(`❌ Dépassement de parts ! Vous avez saisi ${formData.partsCoproprietaire} parts mais seulement ${millièmesDisponibles} parts sont disponibles (${millièmesUtilises} déjà utilisés sur 1000).`);
         }
@@ -223,7 +221,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
     } catch (err) {
       console.error('Error saving proprietaire:', err);
       
-      // ✅ AMÉLIORATION: Messages d'erreur plus clairs
       if (err.response?.data?.errors) {
         setErrors(Array.isArray(err.response.data.errors) 
           ? err.response.data.errors 
@@ -244,7 +241,8 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
     }
   };
 
-  if (immeubles.length === 0) {
+  // ✅ SÉCURITÉ TOTALE: Valeur par défaut dans les props + vérification complète
+  if (!immeubles || !Array.isArray(immeubles) || immeubles.length === 0) {
     return (
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
@@ -276,9 +274,8 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto z-50">
     <div className="min-h-screen px-4 py-6 flex items-start justify-center">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full my-4">
-        {/* Header */}
-<div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10 rounded-t-lg">
-            <h2 className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10 rounded-t-lg">
+          <h2 className="text-xl font-semibold text-gray-900">
             {proprietaire ? 'Modifier le propriétaire' : 'Ajouter un propriétaire'}
           </h2>
           <button
@@ -289,9 +286,7 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
-          {/* Errors */}
           {errors.length > 0 && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex">
@@ -313,7 +308,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
           )}
 
           <div className="space-y-6">
-            {/* Sélection immeuble et type */}
             <div>
               <h3 className="text-sm font-medium text-gray-900 mb-4">Informations générales</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -367,7 +361,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
               </div>
             </div>
 
-            {/* Informations personnelles */}
             <div>
               <h3 className="text-sm font-medium text-gray-900 mb-4">
                 {formData.typeProprietaire === 'personne_morale' ? 'Informations société' : 'Informations personnelles'}
@@ -472,11 +465,9 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
               </div>
             </div>
 
-            {/* ✅ NOUVEAU: Informations de copropriété avec indicateur */}
             <div>
               <h3 className="text-sm font-medium text-gray-900 mb-4">Informations de copropriété</h3>
               
-              {/* Indicateur millièmes disponibles */}
               {selectedImmeuble && (
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
@@ -498,7 +489,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
                     </span>
                   </div>
                   
-                  {/* Barre de progression */}
                   <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 ${getProgressColor()}`}
@@ -539,7 +529,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
                       Quote-part dans les charges communes (sur 1000 millièmes)
                     </p>
                     
-                    {/* Message d'alerte si dépassement */}
                     {exceeded && (
                       <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                         <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
@@ -575,7 +564,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
                       Nombre de parts possédées (sur 1000 parts au total)
                     </p>
                     
-                    {/* Message d'alerte si dépassement */}
                     {exceeded && (
                       <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                         <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
@@ -590,7 +578,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
               </div>
             </div>
 
-            {/* Informations bancaires */}
             <div>
               <h3 className="text-sm font-medium text-gray-900 mb-4">Informations bancaires (optionnel)</h3>
               <div>
@@ -610,7 +597,6 @@ function ProprietairesForm({ proprietaire, immeubles, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
             <button
               type="button"
