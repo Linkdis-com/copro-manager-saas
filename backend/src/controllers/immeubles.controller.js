@@ -20,6 +20,9 @@ export const getImmeubles = async (req, res) => {
   }
 };
 
+// ✅ ALIAS pour compatibilité avec les routes
+export const getAllImmeubles = getImmeubles;
+
 /**
  * Récupérer un immeuble par ID
  */
@@ -238,8 +241,10 @@ export const deleteImmeuble = async (req, res) => {
   }
 };
 
+// ✅ Export par défaut pour compatibilité
 export default {
   getImmeubles,
+  getAllImmeubles,
   getImmeubleById,
   createImmeuble,
   updateImmeuble,
