@@ -457,7 +457,7 @@ export async function cloturerExercice(req, res) {
       // Créer l'exercice suivant
       const createResult = await pool.query(`
         INSERT INTO exercices (immeuble_id, annee, date_debut, date_fin, statut)
-        VALUES ($1, $2, $3, $4, 'actif')
+        VALUES ($1, $2, $3, $4, 'ouvert')
         RETURNING id
       `, [immeubleId, nextYear, `${nextYear}-01-01`, `${nextYear}-12-31`]);
       

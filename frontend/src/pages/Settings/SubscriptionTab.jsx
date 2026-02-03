@@ -33,7 +33,7 @@ function SubscriptionTab() {
       if (subRes.ok) {
         const data = await subRes.json();
         setSubscription(data.subscription);
-        setUsage(data.usage || { immeubles: 0, unites: 0 });
+        setUsage(data.subscription.usage || { immeubles: 0, unites: 0 }); // ✅ CORRECTION
       }
 
       if (plansRes.ok) {
@@ -69,7 +69,7 @@ function SubscriptionTab() {
 
     const plan = subscription.plan;
     const units = usage.unites || 0;
-    // ✅ CORRIGÉ : Utilise price_monthly au lieu de price_per_unit
+    // ✅ CORRIGÉ : Utilise price_monthly (avec underscore) du backend
     const pricePerUnit = parseFloat(plan.price_monthly) || 0;
     const discountPercent = discounts.length > 0 
       ? Math.max(...discounts.map(d => d.percentage))
@@ -78,7 +78,7 @@ function SubscriptionTab() {
     const baseYearly = units * pricePerUnit * 12;
     const discountAmount = baseYearly * (discountPercent / 100);
     const subtotal = baseYearly - discountAmount;
-    const vatRate = plan.is_professional ? 21 : 0;
+    const vatRate = plan.is_professional ? 21 : 0; // ✅ CORRIGÉ : underscore
     const vatAmount = subtotal * (vatRate / 100);
     const total = subtotal + vatAmount;
 
@@ -153,7 +153,7 @@ function SubscriptionTab() {
   const pricing = calculatePrice();
   const plan = subscription?.plan;
   const maxImmeubles = plan?.max_immeubles === -1 ? 'Illimité' : plan?.max_immeubles;
-  const totalUnits = subscription?.total_units || 0;
+  const totalUnits = subscription?.total_units || 0; // ✅ CORRIGÉ : Utilise total_units du backend
 
   return (
     <div className="space-y-6">

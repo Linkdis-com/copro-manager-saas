@@ -58,7 +58,7 @@ export async function getMySubscription(req, res) {
       SELECT 
         s.id, s.status, s.billing_cycle, s.current_period_start, s.current_period_end,
         s.trial_end, s.cancel_at_period_end, s.canceled_at, s.created_at,
-        s.discount_percentage, s.discount_expires_at,
+        s.discount_percentage, s.discount_expires_at, s.total_units,
         p.id as plan_id, p.code as plan_code, p.name as plan_name, 
         p.price_monthly, p.price_yearly, p.price_per_unit,
         p.max_immeubles, p.max_proprietaires, p.max_locataires, p.max_users,
@@ -116,15 +116,17 @@ export async function getMySubscription(req, res) {
         cancelAtPeriodEnd: sub.cancel_at_period_end,
         canceledAt: sub.canceled_at,
         createdAt: sub.created_at,
+        total_units: sub.total_units || 0, // ✅ AJOUTÉ
         plan: {
           id: sub.plan_id,
           code: sub.plan_code,
           name: sub.plan_name,
-          priceMonthly: parseFloat(sub.price_monthly) || 0,
+          price_monthly: parseFloat(sub.price_monthly) || 0, // ✅ CORRIGÉ: underscore
           priceYearly: sub.price_yearly ? parseFloat(sub.price_yearly) : null,
-          pricePerUnit: parseFloat(sub.price_per_unit) || 0,
-          isProfessional: sub.is_professional || false,
+          price_per_unit: parseFloat(sub.price_per_unit) || 0, // ✅ CORRIGÉ: underscore
+          is_professional: sub.is_professional || false, // ✅ CORRIGÉ: underscore
           vatRate: parseFloat(sub.vat_rate) || 0,
+          max_immeubles: sub.max_immeubles, // ✅ CORRIGÉ: underscore
           limits: {
             maxImmeubles: sub.max_immeubles,
             maxProprietaires: sub.max_proprietaires,
@@ -133,7 +135,7 @@ export async function getMySubscription(req, res) {
           },
           features: sub.features || []
         },
-        usage,
+        usage, // ✅ CORRIGÉ: usage est au bon endroit
         pricing,
         discounts
       }
@@ -144,16 +146,20 @@ export async function getMySubscription(req, res) {
   }
 }
 
-// ✅ CORRECTION : Récupérer l'utilisation actuelle de l'utilisateur (FILTRE archived_at)
+// ✅ CORRECTION MAJEURE : Récupérer l'utilisation en comptant les APPARTEMENTS
 async function getUserUsage(userId) {
   try {
-    // ✅ CORRECTION : Compter SEULEMENT les immeubles NON archivés
+    // ✅ Compter les immeubles ET la SOMME des appartements
     const immeubles = await pool.query(
-      'SELECT COUNT(*) as count FROM immeubles WHERE user_id = $1 AND archived_at IS NULL',
+      `SELECT 
+        COUNT(*) as count, 
+        COALESCE(SUM(nombre_appartements), 0) as total_appartements 
+       FROM immeubles 
+       WHERE user_id = $1 AND archived_at IS NULL`,
       [userId]
     );
 
-    // ✅ CORRECTION : Récupérer SEULEMENT les IDs des immeubles NON archivés
+    // ✅ Récupérer SEULEMENT les IDs des immeubles NON archivés
     const userImmeubles = await pool.query(
       'SELECT id FROM immeubles WHERE user_id = $1 AND archived_at IS NULL',
       [userId]
@@ -164,7 +170,7 @@ async function getUserUsage(userId) {
     let locatairesCount = 0;
 
     if (immeubleIds.length > 0) {
-      // Compter les propriétaires (= unités) liés aux immeubles de l'utilisateur
+      // Compter les propriétaires liés aux immeubles de l'utilisateur
       const proprietaires = await pool.query(
         'SELECT COUNT(*) as count FROM proprietaires WHERE immeuble_id = ANY($1)',
         [immeubleIds]
@@ -179,11 +185,13 @@ async function getUserUsage(userId) {
       locatairesCount = parseInt(locataires.rows[0].count) || 0;
     }
 
+    const totalAppartements = parseInt(immeubles.rows[0].total_appartements) || 0;
+
     return {
       immeubles: parseInt(immeubles.rows[0].count) || 0,
       proprietaires: proprietairesCount,
       locataires: locatairesCount,
-      unites: proprietairesCount // Alias pour le calcul du prix
+      unites: totalAppartements // ✅ CORRECTION MAJEURE : Compter les APPARTEMENTS
     };
   } catch (error) {
     console.error('Error getting usage:', error);

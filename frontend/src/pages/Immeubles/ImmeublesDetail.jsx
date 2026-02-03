@@ -646,6 +646,7 @@ function ImmeublesDetail() {
       {/* Modals */}
       {showProprietaireForm && (
         <ProprietairesForm
+          immeubles={immeuble ? [immeuble] : []}
           immeubleId={id}
           onClose={() => setShowProprietaireForm(false)}
           onSuccess={() => {

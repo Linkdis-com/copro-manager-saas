@@ -165,7 +165,7 @@ export async function createTransaction(req, res) {
 // UPDATE - Optimisé
 export async function updateTransaction(req, res) {
   const { immeubleId, id } = req.params;
-  const { dateTransaction, type, montant, description, reference, tags, proprietaire_id } = req.body;
+  const { dateTransaction, type, montant, description, reference, tags, proprietaire_id, nom_contrepartie } = req.body;
 
   const client = await pool.connect();
   
@@ -197,8 +197,8 @@ export async function updateTransaction(req, res) {
       [dateTransaction, type, montant, description, reference, id, immeubleId]
     );
 
-    // Update optional columns
-    if (tags !== undefined || proprietaire_id !== undefined) {
+    // ✅ CORRECTION : Ajouter nom_contrepartie dans les colonnes optionnelles
+    if (tags !== undefined || proprietaire_id !== undefined || nom_contrepartie !== undefined) {
       try {
         const optUpdates = [];
         const optValues = [];
@@ -212,6 +212,12 @@ export async function updateTransaction(req, res) {
         if (proprietaire_id !== undefined) {
           optUpdates.push(`proprietaire_id = $${idx}`);
           optValues.push(proprietaire_id);
+          idx++;
+        }
+        // ✅ AJOUTÉ : Support de nom_contrepartie
+        if (nom_contrepartie !== undefined) {
+          optUpdates.push(`nom_contrepartie = $${idx}`);
+          optValues.push(nom_contrepartie);
           idx++;
         }
 
@@ -356,16 +362,51 @@ export async function importBulk(req, res) {
       const t = rawTransactions[i];
 
       try {
-        // Parser date
-        let dateTransaction = t.dateComptabilisation || t.date;
+        // ✅ CORRIGÉ : Lire avec underscores (snake_case) ET camelCase
+        let dateTransaction = t.date_transaction || t.date_comptabilisation || t.dateComptabilisation || t.date;
+        
+        // ✅ Vérifier que la date existe
+        if (!dateTransaction) {
+          errors.push({ row: i + 1, error: 'Date manquante', data: t });
+          continue;
+        }
+        
+        // ✅ Si c'est déjà une string
         if (typeof dateTransaction === 'string') {
-          const parts = dateTransaction.split(/[-\/]/);
-          if (parts.length === 3) {
-            let year = parts[2];
-            if (year.length === 2) year = '20' + year;
-            dateTransaction = `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          dateTransaction = dateTransaction.trim();
+          
+          // ✅ AJOUTÉ : Vérifier si c'est déjà au format ISO (YYYY-MM-DD)
+          if (/^\d{4}-\d{2}-\d{2}/.test(dateTransaction)) {
+            // Déjà au format ISO, ne rien faire
+            dateTransaction = dateTransaction.substring(0, 10); // Prendre seulement YYYY-MM-DD
+          } 
+          // Sinon, parser DD-MM-YYYY ou DD/MM/YYYY
+          else {
+            const parts = dateTransaction.split(/[-\/]/);
+            if (parts.length === 3) {
+              let day, month, year;
+              
+              // Format YYYY-MM-DD (au cas où)
+              if (parts[0].length === 4) {
+                [year, month, day] = parts;
+              }
+              // Format DD-MM-YYYY ou DD/MM/YYYY
+              else {
+                [day, month, year] = parts;
+                if (year.length === 2) year = '20' + year;
+              }
+              
+              dateTransaction = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
           }
         }
+        
+        // ✅ Vérifier que la date est valide après parsing
+        if (!dateTransaction || !/^\d{4}-\d{2}-\d{2}$/.test(dateTransaction)) {
+          errors.push({ row: i + 1, error: 'Date invalide après parsing', data: t });
+          continue;
+        }
+
 
         // Parser montant
         let montant = t.montant;

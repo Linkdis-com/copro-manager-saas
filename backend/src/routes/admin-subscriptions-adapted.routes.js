@@ -161,6 +161,58 @@ router.post('/create-test-subscription', async (req, res) => {
 });
 
 // ===================================
+// ✅ NOUVEAU - Définir le nombre d'unités
+// ===================================
+router.patch('/set-units/:subscriptionId', async (req, res) => {
+  const { subscriptionId } = req.params;
+  const { total_units } = req.body;
+  
+  try {
+    // Validation
+    if (total_units === undefined || total_units < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Le nombre d\'unités doit être >= 0'
+      });
+    }
+    
+    const unitsInt = parseInt(total_units);
+    
+    // Mettre à jour les unités
+    const result = await pool.query(`
+      UPDATE subscriptions 
+      SET 
+        total_units = $1,
+        updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `, [unitsInt, subscriptionId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Abonnement non trouvé'
+      });
+    }
+    
+    console.log(`✅ Unités définies à ${unitsInt} pour subscription ${subscriptionId}`);
+    
+    res.json({
+      success: true,
+      message: `Unités définies à ${unitsInt}`,
+      subscription: result.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('Error setting units:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ===================================
 // PATCH - Activer/Désactiver abonnement
 // ===================================
 router.patch('/toggle-subscription/:subscriptionId', async (req, res) => {

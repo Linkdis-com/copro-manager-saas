@@ -19,8 +19,7 @@ import {
   Edit2,
   X,
   Coins,
-  User,
-  Lock
+  User
 } from 'lucide-react';
 import { transactionsService, fournisseursService, immeublesService, proprietairesService } from '../../services/api';
 
@@ -56,18 +55,9 @@ function TransactionsImport() {
   const [stats, setStats] = useState(null);
   const [filterType, setFilterType] = useState('all');
   
-  // ✅ NOUVEAU: État exercice
-  const [exerciceCourant, setExerciceCourant] = useState(null);
-  const isExerciceCloture = exerciceCourant?.statut === 'cloture';
-  
   // État pour édition
   const [editingTransaction, setEditingTransaction] = useState(null);
-  const [editForm, setEditForm] = useState({ 
-    description: '', 
-    nom_contrepartie: '',  // ✅ AJOUTÉ
-    tags: [], 
-    proprietaire_id: null 
-  });
+  const [editForm, setEditForm] = useState({ description: '', tags: [], proprietaire_id: null });
   const [saving, setSaving] = useState(false);
 
   // Charger les données
@@ -83,18 +73,6 @@ function TransactionsImport() {
       // Charger l'immeuble
       const immeubleRes = await immeublesService.getOne(immeubleId);
       setImmeuble(immeubleRes.data.immeuble);
-      
-      // ✅ NOUVEAU: Charger l'exercice en cours
-      try {
-        const currentYear = new Date().getFullYear();
-        const exercicesRes = await immeublesService.getExercices(immeubleId);
-        const exercices = exercicesRes.data?.exercices || [];
-        const exerciceActuel = exercices.find(e => e.annee === currentYear.toString()) || null;
-        setExerciceCourant(exerciceActuel);
-        console.log('📅 Exercice courant:', exerciceActuel);
-      } catch (e) {
-        console.log('Pas d\'exercice courant');
-      }
       
       // Charger les propriétaires
       const proprietairesRes = await proprietairesService.getByImmeuble(immeubleId);
@@ -324,6 +302,7 @@ function TransactionsImport() {
           const montantParsed = parseFloat(montantClean);
           const recognition = recognizeFournisseur(t.nomContrepartie || '', t.communication || '');
           
+          // ✅ Convertir la date pour validation
           const dateISO = convertDateToISO(t.dateComptabilisation);
           
           const isDuplicate = transactions.some(existing => 
@@ -331,6 +310,7 @@ function TransactionsImport() {
             existing.date_comptabilisation === dateISO
           );
           
+          // ✅ Validation stricte
           const isValidDate = dateISO !== null;
           const isValidMontant = !isNaN(montantParsed);
           
@@ -362,28 +342,35 @@ function TransactionsImport() {
     }
   };
 
+  // ✅ FONCTION CORRIGÉE AVEC VALIDATION STRICTE
   const convertDateToISO = (dateStr) => {
     if (!dateStr) return null;
     
+    // Nettoyer la date
     const cleanDate = dateStr.toString().trim();
     if (!cleanDate) return null;
     
+    // Essayer de parser avec différents formats
     const parts = cleanDate.split(/[-\/\s.]/);
     if (parts.length < 3) return null;
     
     let day, month, year;
     
+    // Format YYYY-MM-DD ou YYYY/MM/DD
     if (parts[0].length === 4) {
       [year, month, day] = parts;
     } 
+    // Format DD-MM-YYYY ou DD/MM/YYYY
     else if (parts[2].length === 4) {
       [day, month, year] = parts;
     } 
+    // Format DD-MM-YY ou DD/MM/YY
     else {
       [day, month, year] = parts;
       year = year.length === 2 ? '20' + year : year;
     }
     
+    // ✅ Valider que ce sont bien des nombres
     const dayNum = parseInt(day);
     const monthNum = parseInt(month);
     const yearNum = parseInt(year);
@@ -396,6 +383,7 @@ function TransactionsImport() {
     return `${yearNum}-${monthNum.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
   };
 
+  // ✅ FONCTION CORRIGÉE AVEC DOUBLE FILTRE
   const handleImport = async () => {
     const validRows = importData.filter(r => r.valid);
     if (validRows.length === 0) {
@@ -411,6 +399,7 @@ function TransactionsImport() {
       const payload = validRows.map(row => {
         const dateTransaction = convertDateToISO(row.dateComptabilisation);
         
+        // ✅ Vérifier que la date est valide
         if (!dateTransaction) {
           console.error('Date invalide pour la ligne:', row);
           return null;
@@ -429,7 +418,7 @@ function TransactionsImport() {
           fournisseur_id: row.fournisseurId || null,
           categorie: row.categorieId || null
         };
-      }).filter(Boolean);
+      }).filter(Boolean); // ✅ Filtrer les null
       
       if (payload.length === 0) {
         setError('Aucune transaction avec date valide');
@@ -479,7 +468,6 @@ function TransactionsImport() {
     setEditingTransaction(transaction);
     setEditForm({
       description: transaction.description || transaction.communication || '',
-      nom_contrepartie: transaction.nom_contrepartie || '',  // ✅ AJOUTÉ
       tags: transaction.tags || [],
       proprietaire_id: transaction.proprietaire_id || null
     });
@@ -490,14 +478,11 @@ function TransactionsImport() {
     
     setSaving(true);
     try {
-      const response = await transactionsService.update(immeubleId, editingTransaction.id, {
+      await transactionsService.update(immeubleId, editingTransaction.id, {
         description: editForm.description,
-        nom_contrepartie: editForm.nom_contrepartie,  // ✅ AJOUTÉ
         tags: editForm.tags,
         proprietaire_id: editForm.proprietaire_id
       });
-      
-      console.log('✅ Transaction updated:', response.data);
       
       setEditingTransaction(null);
       setSuccess('Transaction mise à jour');
@@ -569,16 +554,6 @@ function TransactionsImport() {
           </button>
         </div>
       </div>
-
-      {/* ✅ ALERTE EXERCICE CLÔTURÉ */}
-      {isExerciceCloture && (
-        <div className="flex items-center gap-2 p-4 bg-orange-50 text-orange-700 rounded-lg border border-orange-200">
-          <Lock className="w-5 h-5 flex-shrink-0" />
-          <div>
-            <strong>Exercice clôturé</strong> - Les transactions de l'année {exerciceCourant.annee} ne peuvent plus être modifiées.
-          </div>
-        </div>
-      )}
 
       {/* Stats */}
       {stats && (
@@ -817,8 +792,8 @@ function TransactionsImport() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="max-w-xs truncate" title={t.nom_contrepartie || t.nomContrepartie}>
-                        {t.nom_contrepartie || t.nomContrepartie || '-'}
+                      <div className="max-w-xs truncate" title={t.nom_contrepartie}>
+                        {t.nom_contrepartie || '-'}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
@@ -839,9 +814,8 @@ function TransactionsImport() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleEdit(t)}
-                          disabled={isExerciceCloture}  // ✅ BLOQUÉ SI CLÔTURÉ
-                          className="p-1 text-orange-500 hover:bg-orange-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={isExerciceCloture ? 'Exercice clôturé' : 'Éditer'}
+                          className="p-1 text-orange-500 hover:bg-orange-50 rounded"
+                          title="Éditer"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -856,9 +830,8 @@ function TransactionsImport() {
                               }
                             }
                           }}
-                          disabled={isExerciceCloture}  // ✅ BLOQUÉ SI CLÔTURÉ
-                          className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={isExerciceCloture ? 'Exercice clôturé' : 'Supprimer'}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          title="Supprimer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -878,7 +851,7 @@ function TransactionsImport() {
         )}
       </div>
 
-      {/* ✅ MODAL ÉDITION COMPLET */}
+      {/* ✅ MODAL ÉDITION COMPLET AVEC PROPRIETAIRE ET TAGS */}
       {editingTransaction && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -893,30 +866,15 @@ function TransactionsImport() {
                 </button>
               </div>
 
-              {/* Description */}
+              {/* Description (lecture seule) */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <input
-                  type="text"
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                />
+                <div className="px-3 py-2 border rounded bg-gray-50 text-sm text-gray-700">
+                  {editForm.description || '-'}
+                </div>
               </div>
 
-              {/* ✅ CONTREPARTIE */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contrepartie</label>
-                <input
-                  type="text"
-                  value={editForm.nom_contrepartie || ''}
-                  onChange={(e) => setEditForm({ ...editForm, nom_contrepartie: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Nom de la contrepartie"
-                />
-              </div>
-
-              {/* ✅ PROPRIETAIRE (pour dépôts uniquement) */}
+              {/* ✅ CHAMP PROPRIETAIRE (pour dépôts uniquement) */}
               {getDisplayType(editingTransaction) === 'depot' && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -927,7 +885,7 @@ function TransactionsImport() {
                     value={editForm.proprietaire_id || ''}
                     onChange={(e) => setEditForm({ 
                       ...editForm, 
-                      proprietaire_id: e.target.value || null  // ✅ PAS DE parseInt()
+                      proprietaire_id: e.target.value ? parseInt(e.target.value) : null 
                     })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
                   >
@@ -944,7 +902,7 @@ function TransactionsImport() {
                 </div>
               )}
 
-              {/* ✅ TAGS */}
+              {/* ✅ CHAMP TAGS */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
                 <div className="border rounded-lg p-2 max-h-48 overflow-y-auto space-y-1">

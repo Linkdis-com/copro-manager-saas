@@ -7,8 +7,11 @@ billing_settings
 campaigns
 categories_charges
 compteurs_eau
+configuration_eau
 decomptes
 decomptes_details
+decomptes_eau
+decomptes_eau_lignes
 decomptes_locataires
 discounts
 exercices
@@ -29,6 +32,7 @@ referral_tiers
 referrals
 refresh_tokens
 releves_compteurs
+releves_eau
 repartitions_eau
 social_shares
 soldes_exercices
@@ -175,7 +179,31 @@ v_compteurs_hierarchie
 │ 10      │ 'ordre'                 │ 'integer'                     │ null                     │ 'YES'       │ '0'                               │
 │ 11      │ 'index_precedent'       │ 'numeric'                     │ null                     │ 'YES'       │ '0'                               │
 │ 12      │ 'date_index_precedent'  │ 'date'                        │ null                     │ 'YES'       │ null                              │
+│ 13      │ 'updated_at'            │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'               │
 └─────────┴─────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴───────────────────────────────────┘
+
+
+=== TABLE: configuration_eau ===
+┌─────────┬────────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name                │ data_type                     │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼────────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'                       │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'immeuble_id'              │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 2       │ 'region'                   │ 'character varying'           │ 20                       │ 'NO'        │ null                │
+│ 3       │ 'distributeur'             │ 'character varying'           │ 100                      │ 'NO'        │ null                │
+│ 4       │ 'type_comptage'            │ 'character varying'           │ 20                       │ 'NO'        │ null                │
+│ 5       │ 'tarif_distribution'       │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 6       │ 'tarif_assainissement'     │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 7       │ 'redevance_fixe'           │ 'numeric'                     │ null                     │ 'YES'       │ '0'                 │
+│ 8       │ 'tva_pourcent'             │ 'numeric'                     │ null                     │ 'YES'       │ '6.0'               │
+│ 9       │ 'tarif_base'               │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 10      │ 'tarif_confort'            │ 'numeric'                     │ null                     │ 'YES'       │ null                │
+│ 11      │ 'm3_base_par_habitant'     │ 'integer'                     │ null                     │ 'YES'       │ '30'                │
+│ 12      │ 'm3_gratuits_par_habitant' │ 'integer'                     │ null                     │ 'YES'       │ '15'                │
+│ 13      │ 'max_habitants_gratuits'   │ 'integer'                     │ null                     │ 'YES'       │ '5'                 │
+│ 14      │ 'created_at'               │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+│ 15      │ 'updated_at'               │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴────────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
 
 
 === TABLE: decomptes ===
@@ -224,6 +252,44 @@ v_compteurs_hierarchie
 │ 8       │ 'quantite'      │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
 │ 9       │ 'prix_unitaire' │ 'numeric'                     │ null                     │ 'YES'       │ null                 │
 └─────────┴─────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────┘
+
+
+=== TABLE: decomptes_eau ===
+┌─────────┬───────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬──────────────────────────────────┐
+│ (index) │ column_name               │ data_type                     │ character_maximum_length │ is_nullable │ column_default                   │
+├─────────┼───────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼──────────────────────────────────┤
+│ 0       │ 'id'                      │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()'              │
+│ 1       │ 'immeuble_id'             │ 'uuid'                        │ null                     │ 'YES'       │ null                             │
+│ 2       │ 'periode_debut'           │ 'date'                        │ null                     │ 'NO'        │ null                             │
+│ 3       │ 'periode_fin'             │ 'date'                        │ null                     │ 'NO'        │ null                             │
+│ 4       │ 'compteur_principal_id'   │ 'uuid'                        │ null                     │ 'YES'       │ null                             │
+│ 5       │ 'consommation_principale' │ 'numeric'                     │ null                     │ 'YES'       │ null                             │
+│ 6       │ 'pertes_totales'          │ 'numeric'                     │ null                     │ 'YES'       │ '0'                              │
+│ 7       │ 'pertes_pourcent'         │ 'numeric'                     │ null                     │ 'YES'       │ '0'                              │
+│ 8       │ 'montant_total'           │ 'numeric'                     │ null                     │ 'NO'        │ null                             │
+│ 9       │ 'statut'                  │ 'character varying'           │ 20                       │ 'YES'       │ "'brouillon'::character varying" │
+│ 10      │ 'notes'                   │ 'text'                        │ null                     │ 'YES'       │ null                             │
+│ 11      │ 'created_at'              │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'              │
+│ 12      │ 'updated_at'              │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP'              │
+└─────────┴───────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴──────────────────────────────────┘
+
+
+=== TABLE: decomptes_eau_lignes ===
+┌─────────┬─────────────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name             │ data_type                     │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼─────────────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'                    │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'decompte_id'           │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 2       │ 'compteur_id'           │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 3       │ 'proprietaire_id'       │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 4       │ 'consommation_compteur' │ 'numeric'                     │ null                     │ 'NO'        │ null                │
+│ 5       │ 'm3_gratuits'           │ 'numeric'                     │ null                     │ 'YES'       │ '0'                 │
+│ 6       │ 'part_pertes'           │ 'numeric'                     │ null                     │ 'YES'       │ '0'                 │
+│ 7       │ 'consommation_facturee' │ 'numeric'                     │ null                     │ 'NO'        │ null                │
+│ 8       │ 'detail_calcul'         │ 'jsonb'                       │ null                     │ 'YES'       │ null                │
+│ 9       │ 'montant'               │ 'numeric'                     │ null                     │ 'NO'        │ null                │
+│ 10      │ 'created_at'            │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴─────────────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
 
 
 === TABLE: decomptes_locataires ===
@@ -583,6 +649,24 @@ v_compteurs_hierarchie
 │ 8       │ 'updated_at'      │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'now()'             │
 │ 9       │ 'consommation'    │ 'numeric'                     │ null                     │ 'YES'       │ null                │
 └─────────┴───────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
+
+
+=== TABLE: releves_eau ===
+┌─────────┬─────────────────┬───────────────────────────────┬──────────────────────────┬─────────────┬─────────────────────┐
+│ (index) │ column_name     │ data_type                     │ character_maximum_length │ is_nullable │ column_default      │
+├─────────┼─────────────────┼───────────────────────────────┼──────────────────────────┼─────────────┼─────────────────────┤
+│ 0       │ 'id'            │ 'uuid'                        │ null                     │ 'NO'        │ 'gen_random_uuid()' │
+│ 1       │ 'immeuble_id'   │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 2       │ 'compteur_id'   │ 'uuid'                        │ null                     │ 'YES'       │ null                │
+│ 3       │ 'periode_debut' │ 'date'                        │ null                     │ 'NO'        │ null                │
+│ 4       │ 'periode_fin'   │ 'date'                        │ null                     │ 'NO'        │ null                │
+│ 5       │ 'index_debut'   │ 'numeric'                     │ null                     │ 'NO'        │ null                │
+│ 6       │ 'index_fin'     │ 'numeric'                     │ null                     │ 'NO'        │ null                │
+│ 7       │ 'consommation'  │ 'numeric'                     │ null                     │ 'NO'        │ null                │
+│ 8       │ 'notes'         │ 'text'                        │ null                     │ 'YES'       │ null                │
+│ 9       │ 'created_at'    │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+│ 10      │ 'updated_at'    │ 'timestamp without time zone' │ null                     │ 'YES'       │ 'CURRENT_TIMESTAMP' │
+└─────────┴─────────────────┴───────────────────────────────┴──────────────────────────┴─────────────┴─────────────────────┘
 
 
 === TABLE: repartitions_eau ===

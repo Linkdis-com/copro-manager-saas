@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import pool from '../config/database.js';
 const router = express.Router();
 
+
 // ========================================
 // ROUTES PUBLIQUES (sans auth)
 // ========================================
@@ -140,7 +141,7 @@ router.get('/stats/overview', async (req, res) => {
       SELECT 
         COUNT(DISTINCT CASE WHEN u.role = 'user' THEN u.id END) as total_users,
         COUNT(DISTINCT CASE WHEN u.role = 'user' AND u.created_at >= NOW() - INTERVAL '30 days' THEN u.id END) as new_users_this_month,
-        COUNT(DISTINCT i.id) as total_immeubles,
+        COUNT(DISTINCT CASE WHEN i.archived_at IS NULL THEN i.id END) as total_immeubles,
         0 as mrr,
         0 as invoices_this_month,
         0 as unpaid_invoices

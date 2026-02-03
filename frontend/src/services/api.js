@@ -156,7 +156,6 @@ export const tarifsEauService = {
 export const compteursEauService = {
   getAll: (immeubleId) => api.get(`/immeubles/${immeubleId}/compteurs-eau`),
   getByImmeuble: (immeubleId) => api.get(`/immeubles/${immeubleId}/compteurs-eau`),
-  // ✅ CORRIGÉ: Parenthèses au lieu de backticks
   create: (immeubleId, data) => api.post(`/immeubles/${immeubleId}/compteurs-eau`, data),
   update: (immeubleId, id, data) => api.patch(`/immeubles/${immeubleId}/compteurs-eau/${id}`, data),
   delete: (immeubleId, id) => api.delete(`/immeubles/${immeubleId}/compteurs-eau/${id}`)
@@ -181,11 +180,11 @@ export const fournisseursService = {
   delete: (immeubleId, id) => api.delete(`/immeubles/${immeubleId}/fournisseurs/${id}`)
 };
 
-
+// ✅ CORRIGÉ: import → importBulk
 export const transactionsService = {
   getAll: (immeubleId, params) => api.get(`/immeubles/${immeubleId}/transactions`, { params }),
   getStats: (immeubleId) => api.get(`/immeubles/${immeubleId}/transactions/stats`),
-  import: (immeubleId, transactions) => api.post(`/immeubles/${immeubleId}/transactions/import`, { transactions }),
+  importBulk: (immeubleId, data) => api.post(`/immeubles/${immeubleId}/transactions/import`, data),
   create: (immeubleId, data) => api.post(`/immeubles/${immeubleId}/transactions`, data),
   update: (immeubleId, id, data) => api.patch(`/immeubles/${immeubleId}/transactions/${id}`, data),
   delete: (immeubleId, id) => api.delete(`/immeubles/${immeubleId}/transactions/${id}`)
@@ -215,6 +214,7 @@ export const subscriptionsService = {
     api.post('/subscriptions/change-plan', { planCode, billingCycle }),
   getInvoices: () => api.get('/subscriptions/invoices'),
 };
+
 // ✅ SERVICES SYSTÈME EAU
 export const eauConfigService = {
   getConfig: (immeubleId) => api.get(`/eau/configuration/${immeubleId}`),

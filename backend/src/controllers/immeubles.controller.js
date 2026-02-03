@@ -64,36 +64,32 @@ export const createImmeuble = async (req, res) => {
       ville,
       region,
       nombreAppartements,
-      totalMilliemes,
       systemeRepartition
     } = req.body;
 
     await client.query('BEGIN');
 
-    // Créer l'immeuble
+    // ✅ SANS total_milliemes (colonne n'existe pas dans la DB)
     const immeubleResult = await client.query(
       `INSERT INTO immeubles (
         user_id, nom, adresse, code_postal, ville, region,
-        nombre_appartements, total_milliemes, systeme_repartition
+        nombre_appartements, systeme_repartition
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *`,
       [req.user.id, nom, adresse, codePostal, ville, region, 
-       nombreAppartements, totalMilliemes, systemeRepartition]
+       nombreAppartements, systemeRepartition]
     );
 
     const immeuble = immeubleResult.rows[0];
 
-    // ✅ CORRECTION : Utiliser total_units au lieu de current_units
-    // Incrémenter les unités utilisées dans l'abonnement
-    await client.query(
-      `UPDATE subscriptions 
-       SET total_units = total_units + $1
-       WHERE user_id = $2`,
-      [nombreAppartements, req.user.id]
-    );
+    // ✅ SUPPRIMÉ : Ne plus modifier total_units ici
+    // total_units représente les unités ACHETÉES (via Stripe)
+    // usage.unites est calculé dynamiquement via SUM(nombre_appartements)
 
     await client.query('COMMIT');
+
+    console.log(`✅ Immeuble créé: ${immeuble.id} (${nombreAppartements} appartements) by user ${req.user.email}`);
 
     res.status(201).json({ 
       message: 'Immeuble créé avec succès',
@@ -123,7 +119,6 @@ export const updateImmeuble = async (req, res) => {
       ville,
       region,
       nombreAppartements,
-      totalMilliemes,
       systemeRepartition
     } = req.body;
 
@@ -141,32 +136,25 @@ export const updateImmeuble = async (req, res) => {
     }
 
     const oldNombreAppartements = checkResult.rows[0].nombre_appartements;
-    const difference = nombreAppartements - oldNombreAppartements;
 
-    // Mettre à jour l'immeuble
+    // ✅ SANS total_milliemes
     const result = await client.query(
       `UPDATE immeubles 
        SET nom = $1, adresse = $2, code_postal = $3, ville = $4, region = $5,
-           nombre_appartements = $6, total_milliemes = $7, systeme_repartition = $8,
+           nombre_appartements = $6, systeme_repartition = $7,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $9 AND user_id = $10 AND archived_at IS NULL
+       WHERE id = $8 AND user_id = $9 AND archived_at IS NULL
        RETURNING *`,
       [nom, adresse, codePostal, ville, region, nombreAppartements, 
-       totalMilliemes, systemeRepartition, id, req.user.id]
+       systemeRepartition, id, req.user.id]
     );
 
-    // ✅ CORRECTION : Utiliser total_units au lieu de current_units
-    // Ajuster les unités dans l'abonnement si le nombre d'appartements a changé
-    if (difference !== 0) {
-      await client.query(
-        `UPDATE subscriptions 
-         SET total_units = total_units + $1
-         WHERE user_id = $2`,
-        [difference, req.user.id]
-      );
-    }
+    // ✅ SUPPRIMÉ : Ne plus modifier total_units ici
+    // Le calcul dynamique de usage.unites prend déjà en compte le nouveau nombre d'appartements
 
     await client.query('COMMIT');
+
+    console.log(`✅ Immeuble mis à jour: ${id} (${oldNombreAppartements} → ${nombreAppartements} appartements) by user ${req.user.email}`);
 
     res.json({ 
       message: 'Immeuble mis à jour avec succès',
@@ -182,7 +170,7 @@ export const updateImmeuble = async (req, res) => {
 };
 
 /**
- * Supprimer un immeuble (HARD DELETE - Option A)
+ * Supprimer un immeuble (HARD DELETE)
  */
 export const deleteImmeuble = async (req, res) => {
   const client = await pool.connect();
@@ -205,33 +193,27 @@ export const deleteImmeuble = async (req, res) => {
 
     const nombreAppartements = checkResult.rows[0].nombre_appartements;
 
-    // ✅ OPTION A : VRAI DELETE (suppression complète de la DB)
-    // Supprimer toutes les données liées en cascade
+    // ✅ HARD DELETE - Supprimer toutes les données liées en cascade
     await client.query('DELETE FROM compteurs_eau WHERE immeuble_id = $1', [id]);
-    await client.query('DELETE FROM decomptes_eau WHERE immeuble_id = $1', [id]);
+    await client.query('DELETE FROM decomptes WHERE immeuble_id = $1', [id]);
     await client.query('DELETE FROM locataires WHERE immeuble_id = $1', [id]);
     await client.query('DELETE FROM proprietaires WHERE immeuble_id = $1', [id]);
     
     // Supprimer l'immeuble
     await client.query('DELETE FROM immeubles WHERE id = $1', [id]);
 
-    // ✅ CORRECTION : Utiliser total_units au lieu de current_units
-    // Décrémenter les unités dans l'abonnement
-    await client.query(
-      `UPDATE subscriptions 
-       SET total_units = GREATEST(0, total_units - $1)
-       WHERE user_id = $2`,
-      [nombreAppartements, req.user.id]
-    );
+    // ✅ SUPPRIMÉ : Ne plus modifier total_units ici
+    // Le calcul dynamique de usage.unites ne comptera plus cet immeuble automatiquement
 
     await client.query('COMMIT');
+
+    console.log(`✅ Immeuble supprimé: ${id} (${nombreAppartements} appartements) by user ${req.user.email}`);
 
     res.json({ message: 'Immeuble supprimé définitivement avec succès' });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error deleting immeuble:', error);
     
-    // Gérer l'erreur de contrainte de clé étrangère
     if (error.code === '23503') {
       return res.status(400).json({ 
         error: 'Impossible de supprimer cet immeuble car il contient encore des données liées.' 
@@ -244,7 +226,7 @@ export const deleteImmeuble = async (req, res) => {
   }
 };
 
-// ✅ TOUS LES EXPORTS + ALIAS pour compatibilité totale
+// ✅ Export par défaut pour compatibilité
 export default {
   getImmeubles,
   getAllImmeubles,

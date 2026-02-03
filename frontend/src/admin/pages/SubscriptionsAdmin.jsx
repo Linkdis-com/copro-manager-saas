@@ -1,9 +1,9 @@
 // =====================================================
-// 👨‍💼 ADMIN - Gestion Abonnements (ADAPTÉ)
+// 👨‍💼 ADMIN - Gestion Abonnements (AVEC DÉFINIR UNITÉS)
 // frontend/src/admin/pages/SubscriptionsAdmin.jsx
 // =====================================================
 import { useState, useEffect } from 'react';
-import { Users, CreditCard, Calendar, Check, X, Plus, Zap } from 'lucide-react';
+import { Users, CreditCard, Calendar, Check, X, Plus, Zap, Package } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3001/api/v1/subscriptions-admin';
@@ -12,10 +12,15 @@ export default function SubscriptionsAdmin() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showUnitsModal, setShowUnitsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
     plan_type: 'particulier',
     duration_months: 12
+  });
+  const [unitsForm, setUnitsForm] = useState({
+    subscription_id: null,
+    total_units: 0
   });
 
   useEffect(() => {
@@ -68,6 +73,28 @@ export default function SubscriptionsAdmin() {
     } catch (error) {
       console.error('Error creating subscription:', error);
       alert(error.response?.data?.error || 'Erreur lors de la création');
+    }
+  };
+
+  // ✅ NOUVELLE FONCTION - Définir les unités
+  const setUnits = async () => {
+    if (!unitsForm.subscription_id) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.patch(
+        `${API_URL}/set-units/${unitsForm.subscription_id}`,
+        { total_units: unitsForm.total_units },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      alert(`✅ Unités définies à ${unitsForm.total_units} !`);
+      setShowUnitsModal(false);
+      setUnitsForm({ subscription_id: null, total_units: 0 });
+      loadUsers();
+    } catch (error) {
+      console.error('Error setting units:', error);
+      alert(error.response?.data?.error || 'Erreur lors de la mise à jour');
     }
   };
 
@@ -289,6 +316,22 @@ export default function SubscriptionsAdmin() {
                         </button>
                       ) : (
                         <>
+                          {/* ✅ NOUVEAU BOUTON - Définir Unités */}
+                          <button
+                            onClick={() => {
+                              setUnitsForm({
+                                subscription_id: user.subscription_id,
+                                total_units: user.total_units || 0
+                              });
+                              setShowUnitsModal(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
+                            title="Définir le nombre d'unités"
+                          >
+                            <Package className="h-4 w-4" />
+                            Unités
+                          </button>
+                          
                           <button
                             onClick={() => toggleSubscription(user, user.status !== 'active')}
                             className={`px-3 py-1.5 text-sm rounded transition ${
@@ -393,6 +436,61 @@ export default function SubscriptionsAdmin() {
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 Activer l'Abonnement
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ NOUVEAU MODAL - Définir Unités */}
+      {showUnitsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Package className="h-6 w-6 text-blue-600" />
+              Définir les Unités
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre d'unités (appartements)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={unitsForm.total_units}
+                  onChange={(e) => setUnitsForm({ ...unitsForm, total_units: parseInt(e.target.value) || 0 })}
+                  className="w-full border rounded-lg px-3 py-2"
+                  placeholder="Ex: 5"
+                />
+              </div>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800">
+                  <strong>⚠️ Important :</strong>
+                  <br />• total_units = unités ACHETÉES (fixe)
+                  <br />• Utilisé uniquement pour les tests
+                  <br />• En production, modifié via Stripe
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowUnitsModal(false);
+                  setUnitsForm({ subscription_id: null, total_units: 0 });
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={setUnits}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Définir
               </button>
             </div>
           </div>
