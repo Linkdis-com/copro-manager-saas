@@ -1,14 +1,13 @@
 {
   "name": "copro-manager-frontend",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.user.js",
     "dev:admin": "vite --config vite.config.admin.js",
     "build": "vite build --config vite.config.user.js",
     "build:admin": "vite build --config vite.config.admin.js",
-    "railway:build": "npm install && npm run build",
     "preview": "vite preview",
     "preview:admin": "vite preview --outDir dist-admin"
   },
