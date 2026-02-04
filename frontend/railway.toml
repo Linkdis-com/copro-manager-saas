@@ -1,0 +1,14 @@
+[build]
+builder = "nixpacks"
+
+[nixpacks]
+nixpkgsVersion = "latest"
+
+[nixpacks.phases.install]
+cmd = "npm ci --production=false"
+
+[nixpacks.phases.build]
+cmd = "npm run build"
+
+[nixpacks.start]
+cmd = "npx serve -s dist"
