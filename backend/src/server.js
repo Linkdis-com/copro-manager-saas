@@ -109,6 +109,7 @@ app.get('/health', (req, res) => {
 // =====================================================
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/setup', setupRoutes);
+app.use('/api/v1/temp-migration', migrationRoutes);  // ← AJOUTÉ ICI (PUBLIQUE)
 
 // =====================================================
 // 📍 ROUTES ADMIN (PROTECTION ADMIN DANS LES ROUTES)
@@ -148,9 +149,10 @@ app.use('/api/v1/invoices', invoicesRoutes);
 // --- Routes Parrainage ---
 app.use('/api/v1/referral', referralRoutes);
 
-app.use('/api/v1/temp-migration', migrationRoutes);  // TEMPORAIRE
+// SUPPRIMÉ : app.use('/api/v1/temp-migration', migrationRoutes);  ← LIGNE SUPPRIMÉE (était en doublon)
 app.use('/api/v1/promo', promoRoutes);
 app.use('/api/v1/admin/promo-codes', adminPromoRoutes);
+
 // =====================================================
 // 📍 ROUTES DÉVELOPPEMENT
 // =====================================================
@@ -166,6 +168,7 @@ app.use('/api/v1/migrations', pricingReferralMigration);
 app.use('/api/v1/migrations', adminSetupMigration);
 app.use('/api/v1/admin-setup', adminTablesSetup);
 app.use('/api/v1', createSubscriptionsTableRoutes);
+
 // =====================================================
 // ❌ 404 HANDLER
 // =====================================================
