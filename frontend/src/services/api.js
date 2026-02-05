@@ -228,9 +228,8 @@ export const eauRelevesService = {
   getReleves: (immeubleId, params) => api.get(`/eau/releves/${immeubleId}`, { params }),
 };
 
-
 // ============================================
-// ADMINISTRATION
+// ✅ ADMINISTRATION - SERVICE MANQUANT !
 // ============================================
 export const adminService = {
   // Dashboard stats
@@ -257,4 +256,24 @@ export const adminService = {
   // Statistiques
   getStats: () => api.get('/admin/stats'),
 };
+
+// ============================================
+// CODES PROMO (Admin)
+// ============================================
+export const promoCodesService = {
+  // Liste et stats
+  getAll: () => api.get('/admin/promo-codes'),
+  getStats: () => api.get('/admin/promo-codes/stats'),
+  getOne: (id) => api.get(`/admin/promo-codes/${id}`),
+  
+  // CRUD
+  create: (data) => api.post('/admin/promo-codes', data),
+  update: (id, data) => api.put(`/admin/promo-codes/${id}`, data),
+  delete: (id) => api.delete(`/admin/promo-codes/${id}`),
+  toggle: (id) => api.patch(`/admin/promo-codes/${id}/toggle`),
+  
+  // Statistiques détaillées
+  getCodeStats: (id) => api.get(`/admin/promo-codes/${id}/stats`),
+};
+
 export default api;
