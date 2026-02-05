@@ -157,7 +157,6 @@ app.use('/api/v1/dev', devRoutes);
 // =====================================================
 // 📍 ROUTES MIGRATIONS (TEMPORAIRES)
 // =====================================================
-app.use('/api/v1/migrations', migrationsRoutes);
 app.use('/api/v1/migrations', subscriptionMigrationRoutes);
 app.use('/api/v1/migrations', passwordResetMigrationRoutes);
 app.use('/api/v1/migrations', pricingReferralMigration);
