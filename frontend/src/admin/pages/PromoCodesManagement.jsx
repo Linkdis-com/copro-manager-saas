@@ -4,8 +4,7 @@ import {
   Gift, Plus, Edit, Trash2, BarChart3, Calendar, Users,
   TrendingUp, Tag, Check, X, Loader
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../../services/adminApi'; // ✅ NOUVEAU : Import instance axios admin
 
 function PromoCodesManagement() {
   const [loading, setLoading] = useState(true);
@@ -37,24 +36,20 @@ function PromoCodesManagement() {
     loadData();
   }, []);
 
+  // ✅ CORRIGÉ : Utiliser adminApi au lieu de fetch
   const loadData = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
       const [codesRes, statsRes] = await Promise.all([
-        fetch(`${API_URL}/api/v1/admin/promo-codes`, { headers }),
-        fetch(`${API_URL}/api/v1/admin/promo-codes/stats`, { headers })
+        adminApi.get('/admin/promo-codes'),
+        adminApi.get('/admin/promo-codes/stats')
       ]);
 
-      if (codesRes.ok) {
-        const data = await codesRes.json();
-        setPromoCodes(data.promo_codes || []);
+      if (codesRes.data) {
+        setPromoCodes(codesRes.data.promo_codes || []);
       }
 
-      if (statsRes.ok) {
-        const data = await statsRes.json();
-        setGlobalStats(data.stats);
+      if (statsRes.data) {
+        setGlobalStats(statsRes.data.stats);
       }
 
     } catch (error) {
@@ -65,68 +60,50 @@ function PromoCodesManagement() {
     }
   };
 
+  // ✅ CORRIGÉ : Utiliser adminApi au lieu de fetch
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('admin_token');
-      const url = editingCode
-        ? `${API_URL}/api/v1/admin/promo-codes/${editingCode.id}`
-        : `${API_URL}/api/v1/admin/promo-codes`;
+      let response;
       
-      const method = editingCode ? 'PUT' : 'POST';
+      if (editingCode) {
+        response = await adminApi.put(`/admin/promo-codes/${editingCode.id}`, formData);
+      } else {
+        response = await adminApi.post('/admin/promo-codes', formData);
+      }
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(data.message);
+      if (response.data) {
+        setSuccess(response.data.message || (editingCode ? 'Code mis à jour !' : 'Code créé !'));
         setShowCreateForm(false);
         setEditingCode(null);
         resetForm();
         loadData();
-      } else {
-        setError(data.message || 'Erreur lors de la sauvegarde');
       }
 
     } catch (error) {
       console.error('Error saving promo code:', error);
-      setError('Erreur de connexion');
+      setError(error.response?.data?.message || 'Erreur lors de la sauvegarde');
     }
   };
 
+  // ✅ CORRIGÉ : Utiliser adminApi au lieu de fetch
   const handleDelete = async (id, code) => {
     if (!confirm(`Supprimer le code ${code} ?`)) return;
 
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${API_URL}/api/v1/admin/promo-codes/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await adminApi.delete(`/admin/promo-codes/${id}`);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(data.message);
+      if (response.data) {
+        setSuccess(response.data.message || 'Code supprimé !');
         loadData();
-      } else {
-        setError(data.message);
       }
 
     } catch (error) {
       console.error('Error deleting promo code:', error);
-      setError('Erreur lors de la suppression');
+      setError(error.response?.data?.message || 'Erreur lors de la suppression');
     }
   };
 
