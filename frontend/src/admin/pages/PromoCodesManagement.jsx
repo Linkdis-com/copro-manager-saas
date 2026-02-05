@@ -4,7 +4,7 @@ import {
   Gift, Plus, Edit, Trash2, BarChart3, Calendar, Users,
   TrendingUp, Tag, Check, X, Loader
 } from 'lucide-react';
-import adminApi from '../../services/adminApi'; // ✅ NOUVEAU : Import instance axios admin
+import api from '../../services/api'; // ✅ UTILISER L'API NORMALE (pas adminApi)
 
 function PromoCodesManagement() {
   const [loading, setLoading] = useState(true);
@@ -36,12 +36,12 @@ function PromoCodesManagement() {
     loadData();
   }, []);
 
-  // ✅ CORRIGÉ : Utiliser adminApi au lieu de fetch
+  // ✅ CORRIGÉ : Utiliser l'instance api normale (pas adminApi)
   const loadData = async () => {
     try {
       const [codesRes, statsRes] = await Promise.all([
-        adminApi.get('/admin/promo-codes'),
-        adminApi.get('/admin/promo-codes/stats')
+        api.get('/admin/promo-codes'),
+        api.get('/admin/promo-codes/stats')
       ]);
 
       if (codesRes.data) {
@@ -60,7 +60,7 @@ function PromoCodesManagement() {
     }
   };
 
-  // ✅ CORRIGÉ : Utiliser adminApi au lieu de fetch
+  // ✅ CORRIGÉ : Utiliser l'instance api normale
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -70,9 +70,9 @@ function PromoCodesManagement() {
       let response;
       
       if (editingCode) {
-        response = await adminApi.put(`/admin/promo-codes/${editingCode.id}`, formData);
+        response = await api.put(`/admin/promo-codes/${editingCode.id}`, formData);
       } else {
-        response = await adminApi.post('/admin/promo-codes', formData);
+        response = await api.post('/admin/promo-codes', formData);
       }
 
       if (response.data) {
@@ -89,12 +89,12 @@ function PromoCodesManagement() {
     }
   };
 
-  // ✅ CORRIGÉ : Utiliser adminApi au lieu de fetch
+  // ✅ CORRIGÉ : Utiliser l'instance api normale
   const handleDelete = async (id, code) => {
     if (!confirm(`Supprimer le code ${code} ?`)) return;
 
     try {
-      const response = await adminApi.delete(`/admin/promo-codes/${id}`);
+      const response = await api.delete(`/admin/promo-codes/${id}`);
 
       if (response.data) {
         setSuccess(response.data.message || 'Code supprimé !');
