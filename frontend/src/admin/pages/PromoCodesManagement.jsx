@@ -4,7 +4,7 @@ import {
   Gift, Plus, Edit, Trash2, BarChart3, Calendar, Users,
   TrendingUp, Tag, Check, X, Loader
 } from 'lucide-react';
-import api from '../../services/api'; // ✅ UTILISER L'API NORMALE (pas adminApi)
+import adminApi from '../utils/adminApi';
 
 function PromoCodesManagement() {
   const [loading, setLoading] = useState(true);
@@ -36,20 +36,19 @@ function PromoCodesManagement() {
     loadData();
   }, []);
 
-  // ✅ CORRIGÉ : Utiliser l'instance api normale (pas adminApi)
   const loadData = async () => {
     try {
       const [codesRes, statsRes] = await Promise.all([
-        api.get('/admin/promo-codes'),
-        api.get('/admin/promo-codes/stats')
+        adminApi.get('/promo-codes'),
+        adminApi.get('/promo-codes/stats')
       ]);
 
-      if (codesRes.data) {
-        setPromoCodes(codesRes.data.promo_codes || []);
+      if (codesRes.promo_codes) {
+        setPromoCodes(codesRes.promo_codes || []);
       }
 
-      if (statsRes.data) {
-        setGlobalStats(statsRes.data.stats);
+      if (statsRes.stats) {
+        setGlobalStats(statsRes.stats);
       }
 
     } catch (error) {
@@ -60,7 +59,6 @@ function PromoCodesManagement() {
     }
   };
 
-  // ✅ CORRIGÉ : Utiliser l'instance api normale
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -70,13 +68,13 @@ function PromoCodesManagement() {
       let response;
       
       if (editingCode) {
-        response = await api.put(`/admin/promo-codes/${editingCode.id}`, formData);
+        response = await adminApi.put(`/promo-codes/${editingCode.id}`, formData);
       } else {
-        response = await api.post('/admin/promo-codes', formData);
+        response = await adminApi.post('/promo-codes', formData);
       }
 
-      if (response.data) {
-        setSuccess(response.data.message || (editingCode ? 'Code mis à jour !' : 'Code créé !'));
+      if (response) {
+        setSuccess(response.message || (editingCode ? 'Code mis à jour !' : 'Code créé !'));
         setShowCreateForm(false);
         setEditingCode(null);
         resetForm();
@@ -85,25 +83,24 @@ function PromoCodesManagement() {
 
     } catch (error) {
       console.error('Error saving promo code:', error);
-      setError(error.response?.data?.message || 'Erreur lors de la sauvegarde');
+      setError(error.message || 'Erreur lors de la sauvegarde');
     }
   };
 
-  // ✅ CORRIGÉ : Utiliser l'instance api normale
   const handleDelete = async (id, code) => {
     if (!confirm(`Supprimer le code ${code} ?`)) return;
 
     try {
-      const response = await api.delete(`/admin/promo-codes/${id}`);
+      const response = await adminApi.delete(`/promo-codes/${id}`);
 
-      if (response.data) {
-        setSuccess(response.data.message || 'Code supprimé !');
+      if (response) {
+        setSuccess(response.message || 'Code supprimé !');
         loadData();
       }
 
     } catch (error) {
       console.error('Error deleting promo code:', error);
-      setError(error.response?.data?.message || 'Erreur lors de la suppression');
+      setError(error.message || 'Erreur lors de la suppression');
     }
   };
 
@@ -153,7 +150,7 @@ function PromoCodesManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader className="h-8 w-8 animate-spin text-primary-600" />
+        <Loader className="h-8 w-8 animate-spin text-red-600" />
       </div>
     );
   }
@@ -172,7 +169,7 @@ function PromoCodesManagement() {
             setEditingCode(null);
             resetForm();
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
         >
           <Plus className="h-5 w-5" />
           Nouveau code
@@ -253,7 +250,7 @@ function PromoCodesManagement() {
                   required
                   maxLength={20}
                   disabled={!!editingCode}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent uppercase"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent uppercase"
                 />
               </div>
 
@@ -264,7 +261,7 @@ function PromoCodesManagement() {
                 <select
                   value={formData.discount_type}
                   onChange={(e) => setFormData({ ...formData, discount_type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 >
                   <option value="free_months">Mois gratuits</option>
                   <option value="free_units">Unités gratuites</option>
@@ -282,7 +279,7 @@ function PromoCodesManagement() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
                 placeholder="Code de bienvenue pour les nouveaux utilisateurs"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
 
@@ -293,7 +290,7 @@ function PromoCodesManagement() {
                 id="is_dual_benefit"
                 checked={formData.is_dual_benefit}
                 onChange={(e) => setFormData({ ...formData, is_dual_benefit: e.target.checked })}
-                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
               />
               <label htmlFor="is_dual_benefit" className="text-sm font-medium text-gray-700">
                 Récompense double (parrain + filleul)
@@ -437,7 +434,7 @@ function PromoCodesManagement() {
                         : formData.applicable_plans.filter(p => p !== 'particulier');
                       setFormData({ ...formData, applicable_plans: plans });
                     }}
-                    className="w-4 h-4 text-primary-600 border-gray-300 rounded"
+                    className="w-4 h-4 text-red-600 border-gray-300 rounded"
                   />
                   <span className="text-sm text-gray-700">Particulier</span>
                 </label>
@@ -452,7 +449,7 @@ function PromoCodesManagement() {
                         : formData.applicable_plans.filter(p => p !== 'professionnel');
                       setFormData({ ...formData, applicable_plans: plans });
                     }}
-                    className="w-4 h-4 text-primary-600 border-gray-300 rounded"
+                    className="w-4 h-4 text-red-600 border-gray-300 rounded"
                   />
                   <span className="text-sm text-gray-700">Professionnel</span>
                 </label>
@@ -463,7 +460,7 @@ function PromoCodesManagement() {
             <div className="flex gap-3 pt-4 border-t">
               <button
                 type="submit"
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 {editingCode ? 'Mettre à jour' : 'Créer le code'}
               </button>
@@ -507,7 +504,7 @@ function PromoCodesManagement() {
                 <tr key={code.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <Gift className="h-4 w-4 text-primary-600" />
+                      <Gift className="h-4 w-4 text-red-600" />
                       <span className="font-mono font-semibold text-gray-900">{code.code}</span>
                     </div>
                     {code.description && (
