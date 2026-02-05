@@ -17,7 +17,7 @@ import AdminClientDetail from './pages/AdminClientDetail';
 import AdminImmeuble from './pages/AdminImmeuble';
 //import SubscriptionsManagement from './pages/SubscriptionsManagement';
 import SubscriptionsAdmin from './pages/SubscriptionsAdmin';
-import PromoCodesManagement from './pages/Admin/PromoCodesManagement';
+import PromoCodesManagement from './pages/PromoCodesManagement';
 
 
 function AdminApp() {
