@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAdminAuth } from '../contexts/AdminAuthContext'; 
 import {
   Gift, Plus, Edit, Trash2, BarChart3, Calendar, Users,
   TrendingUp, Tag, Check, X, Loader
@@ -38,7 +39,7 @@ function PromoCodesManagement() {
 
   const loadData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('admin_token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
       const [codesRes, statsRes] = await Promise.all([
@@ -70,7 +71,7 @@ function PromoCodesManagement() {
     setSuccess('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('admin_token');
       const url = editingCode
         ? `${API_URL}/api/v1/admin/promo-codes/${editingCode.id}`
         : `${API_URL}/api/v1/admin/promo-codes`;
@@ -108,7 +109,7 @@ function PromoCodesManagement() {
     if (!confirm(`Supprimer le code ${code} ?`)) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('admin_token');
       const response = await fetch(`${API_URL}/api/v1/admin/promo-codes/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
