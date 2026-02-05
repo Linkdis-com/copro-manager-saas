@@ -20,13 +20,15 @@ export function AdminAuthProvider({ children }) {
 
   const checkAdminAuth = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
+      // ✅ CORRIGÉ : Utiliser 'token' au lieu de 'admin_token'
+      const token = localStorage.getItem('token');
       if (!token) {
         setLoading(false);
         return;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || '';
+      // ✅ CORRIGÉ : URL Railway en fallback au lieu de chaîne vide
+      const API_URL = import.meta.env.VITE_API_URL || 'https://copro-manager-saas-production.up.railway.app';
       const response = await fetch(`${API_URL}/api/v1/admin/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -37,18 +39,21 @@ export function AdminAuthProvider({ children }) {
         const data = await response.json();
         setAdmin(data.admin);
       } else {
-        localStorage.removeItem('admin_token');
+        // ✅ CORRIGÉ : Nettoyer 'token' au lieu de 'admin_token'
+        localStorage.removeItem('token');
       }
     } catch (error) {
       console.error('Admin auth check failed:', error);
-      localStorage.removeItem('admin_token');
+      // ✅ CORRIGÉ : Nettoyer 'token' au lieu de 'admin_token'
+      localStorage.removeItem('token');
     } finally {
       setLoading(false);
     }
   };
 
   const login = async (email, password) => {
-    const API_URL = import.meta.env.VITE_API_URL || '';
+    // ✅ CORRIGÉ : URL Railway en fallback au lieu de chaîne vide
+    const API_URL = import.meta.env.VITE_API_URL || 'https://copro-manager-saas-production.up.railway.app';
     const response = await fetch(`${API_URL}/api/v1/admin/auth/login`, {
       method: 'POST',
       headers: {
@@ -63,13 +68,15 @@ export function AdminAuthProvider({ children }) {
     }
 
     const data = await response.json();
-    localStorage.setItem('admin_token', data.token);
+    // ✅ CORRIGÉ : Stocker dans 'token' au lieu de 'admin_token'
+    localStorage.setItem('token', data.token);
     setAdmin(data.admin);
     return data;
   };
 
   const logout = () => {
-    localStorage.removeItem('admin_token');
+    // ✅ CORRIGÉ : Nettoyer 'token' au lieu de 'admin_token'
+    localStorage.removeItem('token');
     setAdmin(null);
   };
 
