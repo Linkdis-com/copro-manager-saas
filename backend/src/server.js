@@ -150,7 +150,7 @@ app.use('/api/v1/referral', referralRoutes);
 
 app.use('/api/v1/temp-migration', migrationRoutes);  // TEMPORAIRE
 app.use('/api/v1/promo', promoRoutes);
-app.use('/api/v1/admin/promo-codes', adminPromoRoutes);
+app.use('/api/v1/promo-codes', adminPromoRoutes);
 // =====================================================
 // 📍 ROUTES DÉVELOPPEMENT
 // =====================================================
@@ -166,7 +166,6 @@ app.use('/api/v1/migrations', pricingReferralMigration);
 app.use('/api/v1/migrations', adminSetupMigration);
 app.use('/api/v1/admin-setup', adminTablesSetup);
 app.use('/api/v1', createSubscriptionsTableRoutes);
-app.use('/api/v1/admin/promo-codes', adminPromoRoutes);
 // =====================================================
 // ❌ 404 HANDLER
 // =====================================================
