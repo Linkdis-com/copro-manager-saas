@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   CreditCard, Building2, Users, Calendar, ArrowRight, 
-  AlertCircle, CheckCircle, Gift, FileText, Percent, ShoppingCart, Plus,
-  X, Loader, Tag
+  AlertCircle, CheckCircle, Gift, FileText, Percent, ShoppingCart, Plus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -15,15 +14,6 @@ function SubscriptionTab() {
   const [discounts, setDiscounts] = useState([]);
   const [plans, setPlans] = useState([]);
 
-  // ═══════════════════════════════════════════════════════════
-  // 🎁 NOUVEAUX STATES POUR CODES PROMO
-  // ═══════════════════════════════════════════════════════════
-  const [promoCode, setPromoCode] = useState('');
-  const [promoValidating, setPromoValidating] = useState(false);
-  const [promoError, setPromoError] = useState('');
-  const [promoSuccess, setPromoSuccess] = useState(null);
-  const [activePromos, setActivePromos] = useState([]);
-
   useEffect(() => {
     loadData();
   }, []);
@@ -34,17 +24,16 @@ function SubscriptionTab() {
       const headers = { 'Authorization': `Bearer ${token}` };
 
       // Charger les données en parallèle
-      const [subRes, plansRes, discountsRes, promosRes] = await Promise.all([
+      const [subRes, plansRes, discountsRes] = await Promise.all([
         fetch(`${API_URL}/api/v1/subscription/current`, { headers }),
         fetch(`${API_URL}/api/v1/plans`, { headers }),
-        fetch(`${API_URL}/api/v1/referral/my-discounts`, { headers }),
-        fetch(`${API_URL}/api/v1/promo/my-discounts`, { headers }) // ✅ NOUVEAU
+        fetch(`${API_URL}/api/v1/referral/my-discounts`, { headers })
       ]);
 
       if (subRes.ok) {
         const data = await subRes.json();
         setSubscription(data.subscription);
-        setUsage(data.subscription.usage || { immeubles: 0, unites: 0 });
+        setUsage(data.subscription.usage || { immeubles: 0, unites: 0 }); // ✅ CORRECTION
       }
 
       if (plansRes.ok) {
@@ -57,12 +46,6 @@ function SubscriptionTab() {
         setDiscounts(data.discounts || []);
       }
 
-      // ✅ NOUVEAU : Charger les promos actives
-      if (promosRes.ok) {
-        const data = await promosRes.json();
-        setActivePromos(data.discounts || []);
-      }
-
     } catch (error) {
       console.error('Error loading subscription data:', error);
     } finally {
@@ -70,82 +53,14 @@ function SubscriptionTab() {
     }
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // 🎁 VALIDATION CODE PROMO
-  // ═══════════════════════════════════════════════════════════
-  const validatePromoCode = async () => {
-    if (!promoCode.trim()) {
-      setPromoError('Veuillez saisir un code promo');
-      return;
-    }
-
-    setPromoValidating(true);
-    setPromoError('');
-    setPromoSuccess(null);
-
-    try {
-      const token = localStorage.getItem('token');
-      
-      // 1. Valider le code
-      const validateResponse = await fetch(`${API_URL}/api/v1/promo/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ code: promoCode.trim().toUpperCase() })
-      });
-
-      const validateData = await validateResponse.json();
-
-      if (validateResponse.ok && validateData.valid) {
-        // 2. Appliquer le code
-        const applyResponse = await fetch(`${API_URL}/api/v1/promo/apply`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ code: promoCode.trim().toUpperCase() })
-        });
-
-        if (applyResponse.ok) {
-          const applyData = await applyResponse.json();
-          setPromoSuccess(validateData.message || 'Code promo appliqué avec succès ! 🎉');
-          setPromoCode('');
-          
-          // Recharger toutes les données pour mettre à jour le pricing
-          await loadData();
-          
-          // Faire disparaître le message de succès après 5 secondes
-          setTimeout(() => setPromoSuccess(null), 5000);
-        } else {
-          const errorData = await applyResponse.json();
-          setPromoError(errorData.message || 'Erreur lors de l\'application du code');
-        }
-      } else {
-        setPromoError(validateData.message || 'Code promo invalide');
-      }
-    } catch (error) {
-      console.error('Error validating promo code:', error);
-      setPromoError('Erreur de connexion. Veuillez réessayer.');
-    } finally {
-      setPromoValidating(false);
-    }
-  };
-
-  // ═══════════════════════════════════════════════════════════
-  // 💰 CALCUL DU PRIX (MODIFIÉ POUR INCLURE PROMOS)
-  // ═══════════════════════════════════════════════════════════
+  // Calculer le prix
   const calculatePrice = () => {
     if (!subscription?.plan) return { 
       units: 0, 
       pricePerUnit: 0, 
       baseYearly: 0, 
       discountPercent: 0, 
-      discountAmount: 0,
-      freeMonths: 0,
-      freeUnits: 0,
+      discountAmount: 0, 
       subtotal: 0, 
       vatRate: 0, 
       vatAmount: 0, 
@@ -154,41 +69,16 @@ function SubscriptionTab() {
 
     const plan = subscription.plan;
     const units = usage.unites || 0;
+    // ✅ CORRIGÉ : Utilise price_monthly (avec underscore) du backend
     const pricePerUnit = parseFloat(plan.price_monthly) || 0;
-    
-    // ✅ NOUVEAU : Calculer mois gratuits depuis les promos
-    const freeMonthsFromPromos = activePromos
-      .filter(p => p.reward_type === 'free_months')
-      .reduce((sum, p) => sum + (p.reward_value || 0), 0);
-    
-    // ✅ NOUVEAU : Calculer unités gratuites depuis les promos
-    const freeUnitsFromPromos = activePromos
-      .filter(p => p.reward_type === 'free_units')
-      .reduce((sum, p) => sum + (p.reward_value || 0), 0);
-    
-    // ✅ NOUVEAU : Calculer % de réduction depuis les promos
-    const percentDiscountFromPromos = activePromos
-      .filter(p => p.reward_type === 'percentage')
-      .reduce((max, p) => Math.max(max, p.reward_value || 0), 0);
-    
-    // Réduction parrainage (existante)
     const discountPercent = discounts.length > 0 
       ? Math.max(...discounts.map(d => d.percentage))
       : 0;
 
-    // Calcul avec mois gratuits
-    const monthsCharged = Math.max(0, 12 - freeMonthsFromPromos);
-    const chargedUnits = Math.max(0, units - freeUnitsFromPromos);
-    
     const baseYearly = units * pricePerUnit * 12;
-    const baseAfterFreeMonths = (baseYearly / 12) * monthsCharged;
-    
-    // Appliquer % de réduction (promo + parrainage)
-    const totalDiscountPercent = Math.max(discountPercent, percentDiscountFromPromos);
-    const discountAmount = baseAfterFreeMonths * (totalDiscountPercent / 100);
-    
-    const subtotal = baseAfterFreeMonths - discountAmount;
-    const vatRate = plan.is_professional ? 21 : 0;
+    const discountAmount = baseYearly * (discountPercent / 100);
+    const subtotal = baseYearly - discountAmount;
+    const vatRate = plan.is_professional ? 21 : 0; // ✅ CORRIGÉ : underscore
     const vatAmount = subtotal * (vatRate / 100);
     const total = subtotal + vatAmount;
 
@@ -196,11 +86,7 @@ function SubscriptionTab() {
       units,
       pricePerUnit,
       baseYearly,
-      freeMonths: freeMonthsFromPromos,
-      freeUnits: freeUnitsFromPromos,
-      monthsCharged,
-      chargedUnits,
-      discountPercent: totalDiscountPercent,
+      discountPercent,
       discountAmount,
       subtotal,
       vatRate,
@@ -267,11 +153,11 @@ function SubscriptionTab() {
   const pricing = calculatePrice();
   const plan = subscription?.plan;
   const maxImmeubles = plan?.max_immeubles === -1 ? 'Illimité' : plan?.max_immeubles;
-  const totalUnits = subscription?.total_units || 0;
+  const totalUnits = subscription?.total_units || 0; // ✅ CORRIGÉ : Utilise total_units du backend
 
   return (
     <div className="space-y-6">
-      {/* ✅ SECTION 1 : Plan actuel (INCHANGÉE) */}
+      {/* Plan actuel */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -333,105 +219,7 @@ function SubscriptionTab() {
         )}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════
-          🎁 NOUVELLE SECTION 2 : CODE PROMO
-          ═══════════════════════════════════════════════════════════ */}
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Gift className="h-5 w-5 text-purple-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Code promo</h2>
-        </div>
-
-        {/* Formulaire de saisie */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Vous avez un code promo ?
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              onKeyPress={(e) => e.key === 'Enter' && validatePromoCode()}
-              placeholder="Ex: WELCOME2025"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase"
-              disabled={promoValidating}
-              maxLength={20}
-            />
-            <button
-              onClick={validatePromoCode}
-              disabled={promoValidating || !promoCode.trim()}
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 font-medium"
-            >
-              {promoValidating ? (
-                <>
-                  <Loader className="h-4 w-4 animate-spin" />
-                  <span className="hidden sm:inline">Vérification...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="hidden sm:inline">Appliquer</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Message d'erreur */}
-          {promoError && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 animate-shake">
-              <X className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{promoError}</p>
-            </div>
-          )}
-
-          {/* Message de succès */}
-          {promoSuccess && (
-            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2 animate-slide-down">
-              <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-green-700 font-medium">{promoSuccess}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Liste des promos actives */}
-        {activePromos.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-purple-200">
-            <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-              <Tag className="h-4 w-4" />
-              Vos promotions actives
-            </p>
-            <div className="space-y-2">
-              {activePromos.map((promo, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-full">
-                      <Gift className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {promo.promo_code || `Parrainage ${promo.referrer_name || ''}`}
-                      </p>
-                      <p className="text-sm text-purple-600 font-medium">
-                        {promo.reward_type === 'free_months' && `🎁 ${promo.reward_value} mois gratuits`}
-                        {promo.reward_type === 'free_units' && `🎁 ${promo.reward_value} unités gratuites`}
-                        {promo.reward_type === 'percentage' && `💰 -${promo.reward_value}% de réduction`}
-                      </p>
-                    </div>
-                  </div>
-                  {promo.expires_at && (
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                      Expire le {formatDate(promo.expires_at)}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ✅ SECTION 3 : Utilisation (INCHANGÉE) */}
+      {/* Utilisation - AMÉLIORÉ ✅ */}
       <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Votre utilisation</h2>
@@ -512,7 +300,7 @@ function SubscriptionTab() {
         </div>
       </div>
 
-      {/* ✅ SECTION 4 : Tarif calculé (MODIFIÉE POUR PROMOS) */}
+      {/* Tarif calculé - AMÉLIORÉ ✅ */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Votre tarif <span className="text-primary-600">ANNUEL</span>
@@ -524,23 +312,11 @@ function SubscriptionTab() {
             <span className="font-medium">{formatAmount(pricing.baseYearly)}</span>
           </div>
           
-          {/* ✅ NOUVEAU : Afficher mois gratuits */}
-          {pricing.freeMonths > 0 && (
-            <div className="flex justify-between text-purple-600">
-              <span className="flex items-center gap-1">
-                <Gift className="h-4 w-4" />
-                Mois gratuits ({pricing.freeMonths} mois offerts)
-              </span>
-              <span className="font-medium">-{formatAmount((pricing.baseYearly / 12) * pricing.freeMonths)}</span>
-            </div>
-          )}
-          
-          {/* Réduction pourcentage */}
           {pricing.discountPercent > 0 && (
             <div className="flex justify-between text-green-600">
               <span className="flex items-center gap-1">
                 <Percent className="h-4 w-4" />
-                Réduction ({pricing.discountPercent}%)
+                Réduction parrainage ({pricing.discountPercent}%)
               </span>
               <span className="font-medium">-{formatAmount(pricing.discountAmount)}</span>
             </div>
@@ -564,30 +340,21 @@ function SubscriptionTab() {
             <span className="text-2xl font-bold text-primary-600">{formatAmount(pricing.total)}</span>
           </div>
 
-          {/* Info mensuelle et mois facturés */}
-          <div className="mt-2 space-y-2">
-            {pricing.freeMonths > 0 && (
-              <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                <p className="text-sm text-purple-800">
-                  🎉 Vous ne payez que <strong>{pricing.monthsCharged} mois</strong> sur 12 grâce à vos promos !
-                </p>
-              </div>
-            )}
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                💡 Soit environ <strong>{formatAmount(pricing.total / 12)}</strong> par mois
-              </p>
-            </div>
+          {/* Info mensuelle */}
+          <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800">
+              💡 Soit environ <strong>{formatAmount(pricing.total / 12)}</strong> par mois
+            </p>
           </div>
         </div>
       </div>
 
-      {/* ✅ SECTION 5 : Réductions actives (parrainage - INCHANGÉE) */}
+      {/* Réductions actives */}
       {discounts.length > 0 && (
         <div className="bg-green-50 rounded-xl border border-green-200 p-6">
           <h2 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
             <Gift className="h-5 w-5" />
-            Vos réductions parrainage
+            Vos réductions actives
           </h2>
           
           <div className="space-y-2">
@@ -608,7 +375,7 @@ function SubscriptionTab() {
         </div>
       )}
 
-      {/* ✅ SECTION 6 : Comparaison des plans (INCHANGÉE) */}
+      {/* Comparaison des plans */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Comparer les plans</h2>
         
@@ -694,7 +461,7 @@ function SubscriptionTab() {
         </div>
       </div>
 
-      {/* ✅ SECTION 7 : Lien vers factures (INCHANGÉE) */}
+      {/* Lien vers factures */}
       <Link 
         to="/settings/invoices" 
         className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"

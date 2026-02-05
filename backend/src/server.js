@@ -53,7 +53,11 @@ import pricingReferralMigration from './routes/pricing-referral-migration.routes
 import adminSetupMigration from './routes/admin-setup-migration.routes.js';
 import adminTablesSetup from './routes/admin-tables-setup.routes.js';
 import createSubscriptionsTableRoutes from './routes/create-subscriptions-table.route.js';
-
+// =====================================================
+// routes promo
+// =====================================================
+import migrationRoutes from './routes/migration.routes.js';  // TEMPORAIRE
+import promoRoutes from './routes/promo.routes.js';
 // =====================================================
 // 🚀 APP CONFIGURATION
 // =====================================================
@@ -143,7 +147,8 @@ app.use('/api/v1/invoices', invoicesRoutes);
 // --- Routes Parrainage ---
 app.use('/api/v1/referral', referralRoutes);
 
-
+app.use('/api/v1/temp-migration', migrationRoutes);  // TEMPORAIRE
+app.use('/api/v1/promo', promoRoutes);
 
 // =====================================================
 // 📍 ROUTES DÉVELOPPEMENT
@@ -181,6 +186,7 @@ app.use((err, req, res, next) => {
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
+
 
 // =====================================================
 // 🚀 START SERVER
