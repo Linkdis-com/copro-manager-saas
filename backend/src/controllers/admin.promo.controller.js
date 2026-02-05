@@ -65,7 +65,7 @@ export async function createPromoCode(req, res) {
       valid_from || null,
       valid_until || null,
       applicable_plans ? JSON.stringify(applicable_plans) : null,
-      req.user.id
+      req.admin.id
     ]);
 
     res.json({
