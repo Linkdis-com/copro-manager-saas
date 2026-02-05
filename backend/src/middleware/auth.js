@@ -31,9 +31,10 @@ export async function authenticate(req, res, next) {
 
   try {
     const result = await pool.query(
-  'SELECT id, email, first_name, last_name, locale, email_verified, role FROM users WHERE id = $1',
-  [decoded.userId]
-);
+      'SELECT id, email, first_name, last_name, locale, email_verified, role FROM users WHERE id = $1',
+      [decoded.userId]
+    );
+    
     if (result.rows.length === 0) {
       return res.status(401).json({ 
         error: 'User not found',
@@ -52,8 +53,6 @@ export async function authenticate(req, res, next) {
   }
 }
 
-
-
 // Middleware optionnel : vérifier que l'email est vérifié
 export function requireEmailVerified(req, res, next) {
   if (!req.user.email_verified) {
@@ -62,5 +61,24 @@ export function requireEmailVerified(req, res, next) {
       message: 'Please verify your email before accessing this resource'
     });
   }
+  next();
+}
+
+// Middleware pour vérifier que l'utilisateur est admin
+export function isAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ 
+      error: 'Not authenticated',
+      message: 'Please login first'
+    });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      error: 'Forbidden',
+      message: 'Admin access required'
+    });
+  }
+
   next();
 }
