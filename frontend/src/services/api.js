@@ -228,4 +228,33 @@ export const eauRelevesService = {
   getReleves: (immeubleId, params) => api.get(`/eau/releves/${immeubleId}`, { params }),
 };
 
+
+// ============================================
+// ADMINISTRATION
+// ============================================
+export const adminService = {
+  // Dashboard stats
+  getDashboard: () => api.get('/admin/dashboard'),
+  
+  // Gestion utilisateurs
+  getAllUsers: (params) => api.get('/admin/users', { params }),
+  getUserDetails: (userId) => api.get(`/admin/users/${userId}`),
+  updateUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
+  deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
+  
+  // Gestion immeubles
+  getAllBuildings: (params) => api.get('/admin/buildings', { params }),
+  unlockExercice: (exerciceId) => api.post(`/admin/exercices/${exerciceId}/unlock`),
+  
+  // Gestion abonnements
+  getUsersSubscriptions: () => api.get('/admin/users-subscriptions'),
+  createSubscription: (data) => api.post('/admin/create-subscription', data),
+  extendSubscription: (subscriptionId, months) => 
+    api.post(`/admin/subscriptions/${subscriptionId}/extend`, { months }),
+  cancelSubscription: (subscriptionId) => 
+    api.delete(`/admin/subscriptions/${subscriptionId}`),
+  
+  // Statistiques
+  getStats: () => api.get('/admin/stats'),
+};
 export default api;
