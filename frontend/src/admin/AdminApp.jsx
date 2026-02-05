@@ -50,8 +50,8 @@ function AdminApp() {
           <Route path="clients/:id" element={<AdminClientDetail />} />
           <Route path="clients/:clientId/immeubles/:id" element={<AdminImmeuble />} />
           <Route path="/codes-promo" element={<PromoCodesManagement />} />
-<Route path="/subscriptions" element={<SubscriptionsAdmin />} />
-<Route path="/codes-promo" element={<PromoCodesManagement />} />
+<Route path="subscriptions" element={<SubscriptionsAdmin />} />
+<Route path="codes-promo" element={<PromoCodesManagement />} />
 
         </Route>
         
