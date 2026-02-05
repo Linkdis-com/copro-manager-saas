@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { 
   Plus, Search, Tag, Share2, Users, CheckCircle, 
-  XCircle, Eye, Copy, Calendar, Gift, Image as ImageIcon
+  XCircle, Copy, Gift, Image as ImageIcon
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../utils/adminApi';
 
 function AdminPromos() {
-  const [activeTab, setActiveTab] = useState('promos'); // promos, referrals, social
+  const [activeTab, setActiveTab] = useState('promos');
   const [promos, setPromos] = useState([]);
   const [referrals, setReferrals] = useState([]);
   const [socialRequests, setSocialRequests] = useState([]);
@@ -21,32 +20,15 @@ function AdminPromos() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      
       if (activeTab === 'promos') {
-        const res = await fetch(`${API_URL}/api/v1/admin/promos`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setPromos(data.promos || []);
-        }
+        const data = await adminApi.get('/promos');
+        setPromos(data.promos || []);
       } else if (activeTab === 'referrals') {
-        const res = await fetch(`${API_URL}/api/v1/admin/referrals`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setReferrals(data.referrals || []);
-        }
+        const data = await adminApi.get('/referrals');
+        setReferrals(data.referrals || []);
       } else if (activeTab === 'social') {
-        const res = await fetch(`${API_URL}/api/v1/admin/social-shares`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSocialRequests(data.requests || []);
-        }
+        const data = await adminApi.get('/social-shares');
+        setSocialRequests(data.requests || []);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -64,20 +46,11 @@ function AdminPromos() {
     if (!confirm('Approuver ce partage social ?')) return;
 
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/social-shares/${requestId}/approve`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        alert('✅ Partage approuvé - Réduction de 20% activée');
-        loadData();
-      } else {
-        alert('❌ Erreur lors de l\'approbation');
-      }
+      await adminApi.post(`/social-shares/${requestId}/approve`);
+      alert('✅ Partage approuvé - Réduction de 20% activée');
+      loadData();
     } catch (error) {
-      alert('❌ Erreur serveur');
+      alert('❌ Erreur lors de l\'approbation: ' + error.message);
     }
   };
 
@@ -85,22 +58,11 @@ function AdminPromos() {
     const reason = prompt('Raison du rejet (facultatif):');
     
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/social-shares/${requestId}/reject`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reason })
-      });
-
-      if (res.ok) {
-        alert('❌ Partage rejeté');
-        loadData();
-      }
+      await adminApi.post(`/social-shares/${requestId}/reject`, { reason });
+      alert('❌ Partage rejeté');
+      loadData();
     } catch (error) {
-      alert('❌ Erreur serveur');
+      alert('❌ Erreur serveur: ' + error.message);
     }
   };
 
@@ -206,7 +168,7 @@ function AdminPromos() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - Codes Promo */}
       {activeTab === 'promos' && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -262,6 +224,7 @@ function AdminPromos() {
         </div>
       )}
 
+      {/* Content - Referrals */}
       {activeTab === 'referrals' && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -325,6 +288,7 @@ function AdminPromos() {
         </div>
       )}
 
+      {/* Content - Social Shares */}
       {activeTab === 'social' && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -344,65 +308,71 @@ function AdminPromos() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredData().map((request) => (
-                <div key={request.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{request.user_email}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Plateforme: {request.platform} • {new Date(request.created_at).toLocaleDateString('fr-FR')}
+              {filteredData().map((request) => {
+                const isPending = request.status === 'pending';
+                const isRejected = request.status === 'rejected';
+                const hasRejectionReason = isRejected && request.rejection_reason;
+
+                return (
+                  <div key={request.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{request.user_email}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Plateforme: {request.platform} • {new Date(request.created_at).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-medium rounded ${
+                        request.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                        request.status === 'approved' ? 'bg-green-100 text-green-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {request.status === 'pending' ? 'En attente' :
+                         request.status === 'approved' ? 'Approuvé' : 'Rejeté'}
+                      </span>
+                    </div>
+
+                    {request.screenshot_url && (
+                      <div className="mb-3">
+                        
+                          href={request.screenshot_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                        <a>
+                          <ImageIcon className="h-4 w-4" />
+                          Voir le screenshot
+                        </a>
+                      </div>
+                    )}
+
+                    {isPending && (
+                      <div className="flex items-center gap-2 pt-3 border-t">
+                        <button
+                          onClick={() => handleApproveSocialShare(request.id)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 text-sm font-medium"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Approuver
+                        </button>
+                        <button
+                          onClick={() => handleRejectSocialShare(request.id)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 text-sm font-medium"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Rejeter
+                        </button>
+                      </div>
+                    )}
+
+                    {hasRejectionReason && (
+                      <p className="text-xs text-red-600 mt-2">
+                        Raison: {request.rejection_reason}
                       </p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${
-                      request.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                      request.status === 'approved' ? 'bg-green-100 text-green-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {request.status === 'pending' ? 'En attente' :
-                       request.status === 'approved' ? 'Approuvé' : 'Rejeté'}
-                    </span>
+                    )}
                   </div>
-
-                  {request.screenshot_url && (
-                    <div className="mb-3">
-                      <a
-                        href={request.screenshot_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                        Voir le screenshot
-                      </a>
-                    </div>
-                  )}
-
-                  {request.status === 'pending' && (
-                    <div className="flex items-center gap-2 pt-3 border-t">
-                      <button
-                        onClick={() => handleApproveSocialShare(request.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 text-sm font-medium"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Approuver
-                      </button>
-                      <button
-                        onClick={() => handleRejectSocialShare(request.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 text-sm font-medium"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Rejeter
-                      </button>
-                    </div>
-                  )}
-
-                  {request.status === 'rejected' && request.rejection_reason && (
-                    <p className="text-xs text-red-600 mt-2">
-                      Raison: {request.rejection_reason}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

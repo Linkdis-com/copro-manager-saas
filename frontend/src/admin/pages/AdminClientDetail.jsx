@@ -21,7 +21,7 @@ function AdminClients() {
 
   const loadClientsWithDetails = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
+  
       
       // 1. Charger la liste des clients
       const clientsRes = await fetch(`${API_URL}/api/v1/admin/clients`, {

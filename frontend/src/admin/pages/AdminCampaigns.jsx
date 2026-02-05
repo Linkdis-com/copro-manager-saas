@@ -3,8 +3,7 @@ import {
   Plus, Search, Mail, Calendar, TrendingUp, 
   Edit, Trash2, Play, Pause, CheckCircle, Clock
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../utils/adminApi';
 
 function AdminCampaigns() {
   const [campaigns, setCampaigns] = useState([]);
@@ -18,15 +17,8 @@ function AdminCampaigns() {
 
   const loadCampaigns = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/campaigns`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setCampaigns(data.campaigns || []);
-      }
+      const data = await adminApi.get('/campaigns');
+      setCampaigns(data.campaigns || []);
     } catch (error) {
       console.error('Error loading campaigns:', error);
     } finally {
@@ -46,20 +38,11 @@ function AdminCampaigns() {
     if (!confirm('Supprimer cette campagne ?')) return;
 
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/campaigns/${campaignId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        alert('✅ Campagne supprimée');
-        loadCampaigns();
-      } else {
-        alert('❌ Erreur lors de la suppression');
-      }
+      await adminApi.delete(`/campaigns/${campaignId}`);
+      alert('✅ Campagne supprimée');
+      loadCampaigns();
     } catch (error) {
-      alert('❌ Erreur serveur');
+      alert('❌ Erreur lors de la suppression');
     }
   };
 

@@ -4,8 +4,7 @@ import {
   ArrowLeft, Building2, MapPin, Users, Home, Calendar, 
   Edit, Trash2, CheckCircle, AlertCircle
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../utils/adminApi';
 
 function AdminImmeuble() {
   const { id, clientId } = useParams();
@@ -21,19 +20,10 @@ function AdminImmeuble() {
 
   const loadImmeuble = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      
-      // Charger immeuble
-      const immeubleRes = await fetch(`${API_URL}/api/v1/admin/immeubles/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (immeubleRes.ok) {
-        const data = await immeubleRes.json();
-        setImmeuble(data.immeuble);
-        setProprietaires(data.proprietaires || []);
-        setLocataires(data.locataires || []);
-      }
+      const data = await adminApi.get(`/immeubles/${id}`);
+      setImmeuble(data.immeuble);
+      setProprietaires(data.proprietaires || []);
+      setLocataires(data.locataires || []);
     } catch (error) {
       console.error('Error loading immeuble:', error);
     } finally {
@@ -56,21 +46,11 @@ function AdminImmeuble() {
     }
 
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/immeubles/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        alert('✅ Immeuble supprimé');
-        navigate(`/clients/${clientId}`);
-      } else {
-        const error = await res.json();
-        alert('❌ ' + error.error);
-      }
+      await adminApi.delete(`/immeubles/${id}`);
+      alert('✅ Immeuble supprimé');
+      navigate(`/clients/${clientId}`);
     } catch (error) {
-      alert('❌ Erreur lors de la suppression');
+      alert('❌ Erreur lors de la suppression: ' + error.message);
     }
   };
 
@@ -190,30 +170,30 @@ function AdminImmeuble() {
             {proprietaires.length > 0 ? (
               <div className="space-y-2">
                 {proprietaires.map((proprio) => (
-                <div key={proprio.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold text-sm">
-                        {proprio.nom?.charAt(0)}{proprio.prenom?.charAt(0)}
-                      </span>
+                  <div key={proprio.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold text-sm">
+                          {proprio.nom?.charAt(0)}{proprio.prenom?.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {proprio.prenom} {proprio.nom}
+                        </p>
+                        <p className="text-xs text-gray-500">{proprio.email}</p>
+                      </div>
                     </div>
-                    <div>
+                    <div className="text-right">
                       <p className="text-sm font-medium text-gray-900">
-                        {proprio.prenom} {proprio.nom}
+                        {proprio.numero_appartement ? `Appt ${proprio.numero_appartement}` : 'Copropriétaire'}
                       </p>
-                      <p className="text-xs text-gray-500">{proprio.email}</p>
+                      <p className="text-xs text-gray-500">
+                        {proprio.milliemes || 0}/1000 millièmes
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">
-                      {proprio.numero_appartement ? `Appt ${proprio.numero_appartement}` : 'Copropriétaire'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {proprio.milliemes || 0}/1000 millièmes
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
               </div>
             ) : (
               <div className="text-center py-6">
@@ -233,34 +213,34 @@ function AdminImmeuble() {
             
             {locataires.length > 0 ? (
               <div className="space-y-2">
-               {locataires.map((locataire) => (
-  <div key={locataire.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-    <div className="flex items-center gap-3">
-      <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
-        <span className="text-purple-600 font-semibold text-sm">
-          {locataire.nom?.charAt(0)}{locataire.prenom?.charAt(0)}
-        </span>
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-900">
-          {locataire.prenom} {locataire.nom}
-        </p>
-        <p className="text-xs text-gray-500">
-          {locataire.email || locataire.telephone || 'Pas de contact'}
-        </p>
-      </div>
-    </div>
-    <div className="text-right">
-      <p className="text-sm font-medium text-gray-900">
-        {locataire.loyer_mensuel ? `${locataire.loyer_mensuel}€/mois` : 'Locataire'}
-      </p>
-      {locataire.date_debut_bail && (
-        <p className="text-xs text-gray-500">
-          Depuis {new Date(locataire.date_debut_bail).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-        </p>
-      )}
-    </div>
-  </div>
+                {locataires.map((locataire) => (
+                  <div key={locataire.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-purple-600 font-semibold text-sm">
+                          {locataire.nom?.charAt(0)}{locataire.prenom?.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {locataire.prenom} {locataire.nom}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {locataire.email || locataire.telephone || 'Pas de contact'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">
+                        {locataire.loyer_mensuel ? `${locataire.loyer_mensuel}€/mois` : 'Locataire'}
+                      </p>
+                      {locataire.date_debut_bail && (
+                        <p className="text-xs text-gray-500">
+                          Depuis {new Date(locataire.date_debut_bail).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (

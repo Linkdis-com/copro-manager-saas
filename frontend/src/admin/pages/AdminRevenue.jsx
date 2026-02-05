@@ -3,8 +3,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, Users, 
   Calendar, CreditCard, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../utils/adminApi';
 
 function AdminRevenue() {
   const [stats, setStats] = useState(null);
@@ -19,19 +18,10 @@ function AdminRevenue() {
 
   const loadRevenueData = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      
-      // Stats globales
-      const statsRes = await fetch(`${API_URL}/api/v1/admin/revenue/stats?period=${period}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (statsRes.ok) {
-        const data = await statsRes.json();
-        setStats(data.stats);
-        setRevenueByMonth(data.revenueByMonth || []);
-        setTopClients(data.topClients || []);
-      }
+      const data = await adminApi.get(`/revenue/stats?period=${period}`);
+      setStats(data.stats);
+      setRevenueByMonth(data.revenueByMonth || []);
+      setTopClients(data.topClients || []);
     } catch (error) {
       console.error('Error loading revenue:', error);
     } finally {

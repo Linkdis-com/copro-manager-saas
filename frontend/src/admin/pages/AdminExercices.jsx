@@ -3,8 +3,7 @@ import {
   Search, Lock, Unlock, Building2, Calendar, 
   AlertCircle, CheckCircle, User
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../utils/adminApi';
 
 function AdminExercices() {
   const [exercices, setExercices] = useState([]);
@@ -18,15 +17,8 @@ function AdminExercices() {
 
   const loadExercices = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/exercices/clotures`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setExercices(data.exercices || []);
-      }
+      const data = await adminApi.get('/exercices/clotures');
+      setExercices(data.exercices || []);
     } catch (error) {
       console.error('Error loading exercices:', error);
     } finally {
@@ -44,24 +36,11 @@ function AdminExercices() {
 
     setActionLoading(exerciceId);
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/exercices/${exerciceId}/unlock`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (res.ok) {
-        alert('✅ Exercice débloqué avec succès');
-        loadExercices(); // Recharger la liste
-      } else {
-        const error = await res.json();
-        alert('❌ ' + error.error);
-      }
+      await adminApi.post(`/exercices/${exerciceId}/unlock`);
+      alert('✅ Exercice débloqué avec succès');
+      loadExercices(); // Recharger la liste
     } catch (error) {
-      alert('❌ Erreur lors du déblocage');
+      alert('❌ Erreur lors du déblocage: ' + error.message);
     } finally {
       setActionLoading(null);
     }

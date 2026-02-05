@@ -3,8 +3,7 @@ import {
   Search, FileText, Calendar, DollarSign, Filter, 
   CheckCircle, Clock, XCircle, Eye, Download
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../utils/adminApi';
 
 function AdminInvoices() {
   const [invoices, setInvoices] = useState([]);
@@ -26,16 +25,9 @@ function AdminInvoices() {
 
   const loadInvoices = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/invoices`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setInvoices(data.invoices || []);
-        calculateStats(data.invoices || []);
-      }
+      const data = await adminApi.get('/invoices');
+      setInvoices(data.invoices || []);
+      calculateStats(data.invoices || []);
     } catch (error) {
       console.error('Error loading invoices:', error);
     } finally {

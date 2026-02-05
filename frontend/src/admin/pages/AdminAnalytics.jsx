@@ -3,8 +3,7 @@ import {
   TrendingUp, Users, Building2, DollarSign, 
   Calendar, Filter, Download, RefreshCw
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../utils/adminApi';
 
 function AdminAnalytics() {
   const [analytics, setAnalytics] = useState(null);
@@ -18,15 +17,8 @@ function AdminAnalytics() {
 
   const loadAnalytics = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API_URL}/api/v1/admin/analytics?range=${timeRange}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setAnalytics(data.analytics);
-      }
+      const data = await adminApi.get(`/analytics?range=${timeRange}`);
+      setAnalytics(data.analytics);
     } catch (error) {
       console.error('Error loading analytics:', error);
     } finally {

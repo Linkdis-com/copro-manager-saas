@@ -4,8 +4,7 @@ import {
   Users, Building2, FileText, DollarSign, TrendingUp, 
   AlertCircle, CheckCircle, Clock, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import adminApi from '../utils/adminApi';
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -19,27 +18,13 @@ function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
-      
       // Charger les stats
-      const statsRes = await fetch(`${API_URL}/api/v1/admin/stats/overview`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (statsRes.ok) {
-        const data = await statsRes.json();
-        setStats(data.stats);
-      }
+      const statsData = await adminApi.get('/stats/overview');
+      setStats(statsData.stats);
 
       // Charger l'activité récente
-      const activityRes = await fetch(`${API_URL}/api/v1/admin/activity/recent`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (activityRes.ok) {
-        const data = await activityRes.json();
-        setRecentActivity(data.activities || []);
-      }
+      const activityData = await adminApi.get('/activity/recent');
+      setRecentActivity(activityData.activities || []);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
