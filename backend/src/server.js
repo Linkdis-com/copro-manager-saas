@@ -112,6 +112,7 @@ app.use('/api/setup', setupRoutes);
 // =====================================================
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/subscriptions-admin', adminSubscriptionsRoutes);
+app.use('/api/v1/admin/promo-codes', adminPromoRoutes);
 
 // =====================================================
 // 🔐 MIDDLEWARE D'AUTHENTIFICATION
@@ -147,7 +148,7 @@ app.use('/api/v1/referral', referralRoutes);
 
 // SUPPRIMÉ : app.use('/api/v1/temp-migration', migrationRoutes);  ← LIGNE SUPPRIMÉE (était en doublon)
 app.use('/api/v1/promo', promoRoutes);
-app.use('/api/v1/admin/promo-codes', adminPromoRoutes);
+
 
 // =====================================================
 // 📍 ROUTES DÉVELOPPEMENT
