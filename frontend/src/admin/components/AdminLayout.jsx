@@ -26,7 +26,7 @@ function AdminLayout() {
     { path: '/revenue', icon: TrendingUp, label: 'Revenus' },
     { path: '/exercices', icon: Unlock, label: 'Déblocage exercices' },
     { path: '/campaigns', icon: Megaphone, label: 'Campagnes pub' },
-    { path: '/promos', icon: Tag, label: 'Codes promo' },
+    { path: '/codes-promo', icon: Tag, label: 'Codes promo' },
     { path: '/analytics', icon: BarChart, label: 'Statistiques' },
   ];
 
