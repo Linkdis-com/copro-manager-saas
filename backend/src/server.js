@@ -57,6 +57,7 @@ import createSubscriptionsTableRoutes from './routes/create-subscriptions-table.
 // routes promo
 // =====================================================
 import migrationRoutes from './routes/migration.routes.js';  // TEMPORAIRE
+import adminPromoRoutes from './routes/admin.promo.routes.js';
 import promoRoutes from './routes/promo.routes.js';
 // =====================================================
 // 🚀 APP CONFIGURATION
@@ -149,7 +150,7 @@ app.use('/api/v1/referral', referralRoutes);
 
 app.use('/api/v1/temp-migration', migrationRoutes);  // TEMPORAIRE
 app.use('/api/v1/promo', promoRoutes);
-
+app.use('/api/v1/admin/promo-codes', adminPromoRoutes);
 // =====================================================
 // 📍 ROUTES DÉVELOPPEMENT
 // =====================================================
@@ -165,7 +166,7 @@ app.use('/api/v1/migrations', pricingReferralMigration);
 app.use('/api/v1/migrations', adminSetupMigration);
 app.use('/api/v1/admin-setup', adminTablesSetup);
 app.use('/api/v1', createSubscriptionsTableRoutes);
-
+app.use('/api/v1/admin/promo-codes', adminPromoRoutes);
 // =====================================================
 // ❌ 404 HANDLER
 // =====================================================
