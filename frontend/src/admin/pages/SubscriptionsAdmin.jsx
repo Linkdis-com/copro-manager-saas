@@ -4,9 +4,7 @@
 // =====================================================
 import { useState, useEffect } from 'react';
 import { Users, CreditCard, Calendar, Check, X, Plus, Zap, Package } from 'lucide-react';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3001/api/v1/subscriptions-admin';
+import api from '../../services/api'; // ✅ UTILISER L'API NORMALE (comme PromoCodesManagement)
 
 export default function SubscriptionsAdmin() {
   const [users, setUsers] = useState([]);
@@ -27,13 +25,11 @@ export default function SubscriptionsAdmin() {
     loadUsers();
   }, []);
 
+  // ✅ CORRIGÉ : Utiliser api au lieu d'axios
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/users-subscriptions`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/subscriptions-admin/users-subscriptions');
       setUsers(response.data.users);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -43,20 +39,16 @@ export default function SubscriptionsAdmin() {
     }
   };
 
+  // ✅ CORRIGÉ : Utiliser api au lieu d'axios
   const createSubscription = async () => {
     if (!selectedUser) return;
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_URL}/create-test-subscription`,
-        {
-          user_id: selectedUser.user_id,
-          plan_type: formData.plan_type,
-          duration_months: formData.duration_months
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.post('/subscriptions-admin/create-test-subscription', {
+        user_id: selectedUser.user_id,
+        plan_type: formData.plan_type,
+        duration_months: formData.duration_months
+      });
       
       alert(`✅ ${response.data.message}\n\n` +
             `📋 Détails:\n` +
@@ -76,17 +68,14 @@ export default function SubscriptionsAdmin() {
     }
   };
 
-  // ✅ NOUVELLE FONCTION - Définir les unités
+  // ✅ CORRIGÉ : Utiliser api au lieu d'axios
   const setUnits = async () => {
     if (!unitsForm.subscription_id) return;
     
     try {
-      const token = localStorage.getItem('token');
-      await axios.patch(
-        `${API_URL}/set-units/${unitsForm.subscription_id}`,
-        { total_units: unitsForm.total_units },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.patch(`/subscriptions-admin/set-units/${unitsForm.subscription_id}`, {
+        total_units: unitsForm.total_units
+      });
       
       alert(`✅ Unités définies à ${unitsForm.total_units} !`);
       setShowUnitsModal(false);
@@ -98,16 +87,14 @@ export default function SubscriptionsAdmin() {
     }
   };
 
+  // ✅ CORRIGÉ : Utiliser api au lieu d'axios
   const toggleSubscription = async (subscription, newStatus) => {
     if (!confirm(`${newStatus ? 'Activer' : 'Désactiver'} cet abonnement ?`)) return;
     
     try {
-      const token = localStorage.getItem('token');
-      await axios.patch(
-        `${API_URL}/toggle-subscription/${subscription.subscription_id}`,
-        { is_active: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.patch(`/subscriptions-admin/toggle-subscription/${subscription.subscription_id}`, {
+        is_active: newStatus
+      });
       
       alert('✅ Abonnement mis à jour !');
       loadUsers();
@@ -117,15 +104,12 @@ export default function SubscriptionsAdmin() {
     }
   };
 
+  // ✅ CORRIGÉ : Utiliser api au lieu d'axios
   const cancelSubscription = async (subscriptionId) => {
     if (!confirm('Annuler cet abonnement ?')) return;
     
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `${API_URL}/cancel-subscription/${subscriptionId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.delete(`/subscriptions-admin/cancel-subscription/${subscriptionId}`);
       
       alert('✅ Abonnement annulé !');
       loadUsers();
@@ -316,7 +300,6 @@ export default function SubscriptionsAdmin() {
                         </button>
                       ) : (
                         <>
-                          {/* ✅ NOUVEAU BOUTON - Définir Unités */}
                           <button
                             onClick={() => {
                               setUnitsForm({
@@ -442,7 +425,7 @@ export default function SubscriptionsAdmin() {
         </div>
       )}
 
-      {/* ✅ NOUVEAU MODAL - Définir Unités */}
+      {/* Modal Définir Unités */}
       {showUnitsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
