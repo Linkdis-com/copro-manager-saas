@@ -56,7 +56,7 @@ import createSubscriptionsTableRoutes from './routes/create-subscriptions-table.
 // =====================================================
 // routes promo
 // =====================================================
-import migrationRoutes from './routes/migration.routes.js';  // TEMPORAIRE
+import migrationRoutes from './routes/migrations.routes.js';  // TEMPORAIRE
 import promoRoutes from './routes/promo.routes.js';
 import adminPromoRoutes from './routes/admin.promo.routes.js';
 // =====================================================
