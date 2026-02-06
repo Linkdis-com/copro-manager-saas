@@ -13,7 +13,6 @@ import { authenticate, requireEmailVerified } from './middleware/auth.js';
 // =====================================================
 import authRoutes from './routes/auth.routes.js';
 
-import tempChargeRoutes from './routes/temp-charge.js';   // à effacer 
 // =====================================================
 // 📁 ROUTES PROTÉGÉES (avec authentification user)
 // =====================================================
@@ -110,7 +109,6 @@ app.get('/health', (req, res) => {
 // =====================================================
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/setup', setupRoutes);
-app.use('/api/v1', tempChargeRoutes); // LIGNE à SUPPRIMer
 // =====================================================
 // 📍 ROUTES ADMIN (PROTECTION ADMIN DANS LES ROUTES)
 // =====================================================
