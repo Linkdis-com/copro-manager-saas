@@ -137,10 +137,10 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
       yearsSet.add(parseInt(ex.annee));
     });
     
-    // Toujours inclure année courante + 2 futures pour création
-    yearsSet.add(currentYear);
-    yearsSet.add(currentYear + 1);
-    yearsSet.add(currentYear + 2);
+// ✅ CORRIGÉ : Inclure aussi les 5 dernières années pour import historique
+for (let y = currentYear - 5; y <= currentYear + 2; y++) {
+  yearsSet.add(y);
+}
     
     // Convertir en tableau trié (plus récent en premier)
     const yearsArray = Array.from(yearsSet).sort((a, b) => b - a);
@@ -568,17 +568,7 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
               <Coins className="h-5 w-5 text-amber-500" />
               <h3 className="text-base font-semibold text-gray-900">Comptabilité</h3>
             </div>
-            
-            {/* ✅ MODIFIÉ : Bouton vert "Importer des extraits" */}
-            {onNavigateToImport && (
-              <button
-                onClick={onNavigateToImport}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm"
-              >
-                <Upload className="h-4 w-4" />
-                Importer des extraits
-              </button>
-            )}
+          
           </div>
         </div>
 
@@ -612,15 +602,9 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
                   <button
                     key={year}
                     onClick={() => {
-                      if (hasExercice) {
                         setSelectedYear(year);
                         setSelectedProprietaire(null);
-                      } else {
-                        // ✅ Ouvrir modal au lieu de confirm()
-                        setNewExerciceYear(year);
-                        setShowCreateExerciceModal(true);
-                      }
-                    }}
+                      }}
                     className={`relative px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
                       selectedYear === year
                         ? 'bg-primary-600 text-white shadow-sm'
@@ -967,14 +951,23 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
           
           {/* ✅ NOUVEAU : Bouton ajouter transaction */}
           {currentExercice?.statut !== 'cloture' && (
-            <button
-              onClick={() => setShowAddTransactionModal(true)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Ajouter</span>
-            </button>
-          )}
+  <button
+    onClick={() => setShowAddTransactionModal(true)}
+    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+  >
+    <Plus className="h-4 w-4" />
+    <span className="hidden sm:inline">Ajouter</span>
+  </button>
+)}
+{onNavigateToImport && (
+  <button
+    onClick={onNavigateToImport}
+    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+  >
+    <Upload className="h-4 w-4" />
+    <span className="hidden sm:inline">Importer</span>
+  </button>
+)}
         </div>
 
         {/* Tableau transactions */}
@@ -1230,9 +1223,9 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
                     try {
                       setSaving(true);
                       await transactionsService.create(immeubleId, {
-                        date_transaction: newTransaction.date,
+                        dateTransaction: newTransaction.date,
                         description: newTransaction.description,
-                        type: newTransaction.type,
+                        type: newTransaction.type === 'depot' ? 'versement' : newTransaction.type,
                         montant: newTransaction.type === 'depot' 
                           ? Math.abs(parseFloat(newTransaction.montant))
                           : -Math.abs(parseFloat(newTransaction.montant)),
