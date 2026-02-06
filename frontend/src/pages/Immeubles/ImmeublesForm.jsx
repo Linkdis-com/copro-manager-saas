@@ -4,8 +4,6 @@ import { X, AlertCircle, Save, Info, TrendingUp } from 'lucide-react';
 import { SubscriptionLimitError } from '../../components/SubscriptionLimitError';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
-const [showCompteurForm, setShowCompteurForm] = useState(false);
-const [showEditForm, setShowEditForm] = useState(false);
 
 function ImmeublesForm({ immeuble, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
