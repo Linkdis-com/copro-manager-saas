@@ -1,3 +1,7 @@
+import { Router } from 'express';
+import pool from '../config/database.js';
+
+const router = Router();
 // Route temporaire - À SUPPRIMER après migration
 router.post('/api/v1/migrate/charges-recurrentes', async (req, res) => {
   try {
@@ -95,3 +99,4 @@ router.post('/api/v1/migrate/charges-recurrentes', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+export default router;
