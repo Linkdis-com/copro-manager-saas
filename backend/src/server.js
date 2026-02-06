@@ -110,7 +110,7 @@ app.get('/health', (req, res) => {
 // =====================================================
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/setup', setupRoutes);
-app.use('/api/v1', tempChargeRoutes); // LIGNE à SUPPRIMÉE (était en doublon)
+app.use('/api/v1', tempChargeRoutes); // LIGNE à SUPPRIMer
 // =====================================================
 // 📍 ROUTES ADMIN (PROTECTION ADMIN DANS LES ROUTES)
 // =====================================================

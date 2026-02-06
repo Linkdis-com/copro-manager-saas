@@ -3,7 +3,7 @@ import pool from '../config/database.js';
 
 const router = Router();
 // Route temporaire - À SUPPRIMER après migration
-router.post('/api/v1/migrate/charges-recurrentes', async (req, res) => {
+router.post('/migrate/charges-recurrentes', async (req, res) => {
   try {
     await pool.query(`
       -- Table principale des charges récurrentes
