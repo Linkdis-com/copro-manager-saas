@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Coins } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   immeublesService, 
@@ -16,6 +16,7 @@ import ProprietairesForm from '../Proprietaires/ProprietairesForm';
 import LocatairesForm from '../Locataires/LocatairesForm';
 import ComptabiliteImmeuble from '../Comptabilite/ComptabiliteImmeuble';
 import ImmeubleNavigationCards from '../../components/ImmeubleNavigationCards';
+import ChargesRecurrentes from '../../components/Charges/ChargesRecurrentes';
 import ImmeublesForm from './ImmeublesForm';
 
 
@@ -316,6 +317,17 @@ function ImmeublesDetail() {
               Propriétaires ({proprietaires.length}{maxProprietaires ? `/${maxProprietaires}` : ''})
             </button>
             <button
+              onClick={() => setActiveTab('charges')}
+              className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${
+                activeTab === 'charges'
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Coins className="inline h-4 w-4 mr-1" />
+              Charges
+            </button>
+            <button
               onClick={() => setActiveTab('locataires')}
               className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${
                 activeTab === 'locataires'
@@ -472,6 +484,14 @@ function ImmeublesDetail() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Tab Charges */}
+        {activeTab === 'charges' && (
+          <ChargesRecurrentes
+            immeubleId={id}
+            proprietaires={proprietaires}
+          />
         )}
 
         {/* Tab Locataires */}

@@ -128,6 +128,16 @@ export const proprietairesService = {
   delete: (immeubleId, id) => api.delete(`/immeubles/${immeubleId}/proprietaires/${id}`),
 };
 
+export const chargesRecurrentesService = {
+  getAll: (immeubleId) => api.get(`/immeubles/${immeubleId}/charges-recurrentes`),
+  create: (immeubleId, data) => api.post(`/immeubles/${immeubleId}/charges-recurrentes`, data),
+  update: (immeubleId, chargeId, data) => api.put(`/immeubles/${immeubleId}/charges-recurrentes/${chargeId}`, data),
+  delete: (immeubleId, chargeId) => api.delete(`/immeubles/${immeubleId}/charges-recurrentes/${chargeId}`),
+  getRepartition: (immeubleId) => api.get(`/immeubles/${immeubleId}/charges-recurrentes/repartition`),
+  genererAppels: (immeubleId, data) => api.post(`/immeubles/${immeubleId}/charges-recurrentes/generer-appels`, data),
+  getAppels: (immeubleId, params) => api.get(`/immeubles/${immeubleId}/appels-charges`, { params }),
+};
+
 export const locatairesService = {
   getByImmeuble: (immeubleId) => api.get(`/immeubles/${immeubleId}/locataires`),
   getOne: (immeubleId, id) => api.get(`/immeubles/${immeubleId}/locataires/${id}`),

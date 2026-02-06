@@ -25,6 +25,7 @@ import subscriptionsRoutes from './routes/subscriptions.routes.js';
 import subscriptionUserRoutes from './routes/subscription-user.routes.js';
 import referralRoutes from './routes/referral.routes.js';
 import invoicesRoutes from './routes/invoices.routes.js';
+import chargesRecurrentesRoutes from './routes/charges-recurrentes.routes.js';
 
 // Routes EAU
 import eauConfigRoutes from './routes/eau/configuration.routes.js';
@@ -135,6 +136,7 @@ app.use('/api/v1/proprietaires', proprietairesRoutes);
 // --- Routes Comptabilité ---
 app.use('/api/v1/decomptes/:decompteId/releves', relevesRoutes);
 app.use('/api/v1/decomptes', decomptesRoutes);
+app.use('/api/v1', chargesRecurrentesRoutes);
 
 // --- Routes EAU ---
 app.use('/api/v1/eau/configuration', eauConfigRoutes);

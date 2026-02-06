@@ -7,7 +7,6 @@ export async function getAllExercices(req, res) {
   const { immeubleId } = req.params;
 
   try {
-    // Vérifier que l'immeuble appartient à l'utilisateur
     const immeubleCheck = await pool.query(
       'SELECT id FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
       [immeubleId, req.user.id]
@@ -20,7 +19,6 @@ export async function getAllExercices(req, res) {
       });
     }
 
-    // Récupérer les exercices avec statistiques
     const result = await pool.query(`
       SELECT 
         e.*,
@@ -56,7 +54,6 @@ export async function getExercice(req, res) {
   const { immeubleId, id } = req.params;
 
   try {
-    // Vérifier accès
     const immeubleCheck = await pool.query(
       'SELECT id FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
       [immeubleId, req.user.id]
@@ -66,7 +63,6 @@ export async function getExercice(req, res) {
       return res.status(404).json({ error: 'Not found', message: 'Immeuble not found' });
     }
 
-    // Récupérer l'exercice
     const exerciceResult = await pool.query(
       'SELECT * FROM exercices WHERE id = $1 AND immeuble_id = $2',
       [id, immeubleId]
@@ -78,7 +74,6 @@ export async function getExercice(req, res) {
 
     const exercice = exerciceResult.rows[0];
 
-    // Récupérer les soldes par propriétaire
     const soldesResult = await pool.query(`
       SELECT 
         se.*,
@@ -92,7 +87,6 @@ export async function getExercice(req, res) {
       ORDER BY p.nom ASC
     `, [id]);
 
-    // Récupérer les appels de fonds
     const appelsResult = await pool.query(`
       SELECT 
         af.*,
@@ -106,7 +100,6 @@ export async function getExercice(req, res) {
       ORDER BY af.date_appel ASC
     `, [id]);
 
-    // Statistiques globales
     const statsResult = await pool.query(`
       SELECT 
         COALESCE(SUM(se.solde_debut), 0) as total_ran,
@@ -119,13 +112,30 @@ export async function getExercice(req, res) {
       WHERE se.exercice_id = $1
     `, [id]);
 
+    // ✅ NOUVEAU: Récupérer le résumé des appels de charges récurrentes
+    let appelsChargesStats = { total_appele: 0, total_paye: 0, nb_appels: 0 };
+    try {
+      const acStats = await pool.query(`
+        SELECT 
+          COALESCE(SUM(montant_appele), 0) as total_appele,
+          COALESCE(SUM(montant_paye), 0) as total_paye,
+          COUNT(*) as nb_appels
+        FROM appels_charges
+        WHERE exercice_id = $1
+      `, [id]);
+      appelsChargesStats = acStats.rows[0];
+    } catch (e) {
+      // Table might not exist yet
+    }
+
     res.json({
       success: true,
       exercice: {
         ...exercice,
         soldes: soldesResult.rows,
         appels: appelsResult.rows,
-        stats: statsResult.rows[0]
+        stats: statsResult.rows[0],
+        appelsChargesStats
       }
     });
   } catch (error) {
@@ -136,6 +146,7 @@ export async function getExercice(req, res) {
 
 // ============================================
 // CREATE - Créer un nouvel exercice avec report automatique
+// + ✅ GÉNÉRATION AUTOMATIQUE DES APPELS DE CHARGES
 // ============================================
 export async function createExercice(req, res) {
   const { immeubleId } = req.params;
@@ -147,7 +158,6 @@ export async function createExercice(req, res) {
     budgetFondsReserve = 0
   } = req.body;
 
-  // Validation
   if (!annee || !dateDebut || !dateFin) {
     return res.status(400).json({ 
       error: 'Validation error',
@@ -156,9 +166,8 @@ export async function createExercice(req, res) {
   }
 
   try {
-    // Vérifier accès
     const immeubleCheck = await pool.query(
-      'SELECT id FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
+      'SELECT id, nombre_total_parts FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
       [immeubleId, req.user.id]
     );
 
@@ -166,7 +175,6 @@ export async function createExercice(req, res) {
       return res.status(404).json({ error: 'Not found', message: 'Immeuble not found' });
     }
 
-    // Vérifier qu'un exercice n'existe pas déjà pour cette année
     const existingCheck = await pool.query(
       'SELECT id FROM exercices WHERE immeuble_id = $1 AND annee = $2',
       [immeubleId, annee]
@@ -192,7 +200,7 @@ export async function createExercice(req, res) {
 
     const exercice = exerciceResult.rows[0];
 
-    // ✅ AMÉLIORÉ: Récupérer l'exercice précédent CLÔTURÉ pour le RAN
+    // Récupérer l'exercice précédent CLÔTURÉ pour le RAN
     const exercicePrecedent = await pool.query(`
       SELECT e.id, e.statut, se.proprietaire_id, se.solde_fin
       FROM exercices e
@@ -210,7 +218,6 @@ export async function createExercice(req, res) {
 
     // Créer les soldes pour chaque propriétaire avec RAN
     for (const proprietaire of proprietairesResult.rows) {
-      // Chercher le solde de l'exercice précédent (clôturé uniquement)
       const soldeAnterior = exercicePrecedent.rows.find(
         s => s.proprietaire_id === proprietaire.id
       );
@@ -225,6 +232,142 @@ export async function createExercice(req, res) {
       `, [exercice.id, proprietaire.id, ran]);
     }
 
+    // =====================================================
+    // ✅ GÉNÉRATION AUTOMATIQUE DES APPELS DE CHARGES
+    // =====================================================
+    let appelsGeneres = 0;
+    let chargesTraitees = 0;
+
+    try {
+      // Récupérer toutes les charges récurrentes actives de l'immeuble
+      const chargesActives = await pool.query(`
+        SELECT cr.*,
+          COALESCE(
+            array_agg(DISTINCT cre.proprietaire_id) FILTER (WHERE cre.id IS NOT NULL), '{}'
+          ) as excluded_proprietaires,
+          COALESCE(
+            json_agg(
+              DISTINCT jsonb_build_object(
+                'proprietaire_id', crq.proprietaire_id,
+                'quote_part', crq.quote_part
+              )
+            ) FILTER (WHERE crq.id IS NOT NULL), '[]'
+          ) as quotes_parts
+        FROM charges_recurrentes cr
+        LEFT JOIN charges_recurrentes_exclusions cre ON cr.id = cre.charge_id
+        LEFT JOIN charges_recurrentes_quotesparts crq ON cr.id = crq.charge_id
+        WHERE cr.immeuble_id = $1 
+          AND cr.actif = true
+          AND (cr.date_debut IS NULL OR cr.date_debut <= $2)
+          AND (cr.date_fin IS NULL OR cr.date_fin >= $3)
+        GROUP BY cr.id
+      `, [immeubleId, dateFin, dateDebut]);
+
+      chargesTraitees = chargesActives.rows.length;
+
+      for (const charge of chargesActives.rows) {
+        const montantAnnuel = parseFloat(charge.montant_annuel);
+        if (!montantAnnuel || montantAnnuel <= 0) continue;
+
+        let periodes = [];
+        const yr = parseInt(annee);
+
+        // Calculer les périodes selon la fréquence
+        if (charge.frequence === 'mensuel') {
+          for (let m = 1; m <= 12; m++) {
+            const lastDay = new Date(yr, m, 0).getDate();
+            periodes.push({
+              debut: `${yr}-${String(m).padStart(2, '0')}-01`,
+              fin: `${yr}-${String(m).padStart(2, '0')}-${lastDay}`,
+              montant: montantAnnuel / 12
+            });
+          }
+        } else if (charge.frequence === 'trimestriel') {
+          for (let t = 1; t <= 4; t++) {
+            const moisDebut = (t - 1) * 3 + 1;
+            const moisFin = t * 3;
+            const lastDay = new Date(yr, moisFin, 0).getDate();
+            periodes.push({
+              debut: `${yr}-${String(moisDebut).padStart(2, '0')}-01`,
+              fin: `${yr}-${String(moisFin).padStart(2, '0')}-${lastDay}`,
+              montant: montantAnnuel / 4
+            });
+          }
+        } else if (charge.frequence === 'semestriel') {
+          periodes = [
+            { debut: `${yr}-01-01`, fin: `${yr}-06-30`, montant: montantAnnuel / 2 },
+            { debut: `${yr}-07-01`, fin: `${yr}-12-31`, montant: montantAnnuel / 2 },
+          ];
+        } else if (charge.frequence === 'annuel') {
+          periodes = [
+            { debut: `${yr}-01-01`, fin: `${yr}-12-31`, montant: montantAnnuel },
+          ];
+        }
+
+        // Calculer les propriétaires concernés (hors exclus)
+        const excludedIds = Array.isArray(charge.excluded_proprietaires) 
+          ? charge.excluded_proprietaires 
+          : [];
+
+        const propsConcernes = proprietairesResult.rows.filter(
+          p => !excludedIds.includes(p.id)
+        );
+
+        const totalMilliemesConcernes = propsConcernes.reduce(
+          (sum, p) => sum + (parseFloat(p.milliemes) || 0), 0
+        );
+
+        // Parse les quotes-parts custom
+        let quotesPartsMap = {};
+        if (charge.cle_repartition === 'custom' && Array.isArray(charge.quotes_parts)) {
+          charge.quotes_parts.forEach(qp => {
+            if (qp && qp.proprietaire_id) {
+              quotesPartsMap[qp.proprietaire_id] = parseFloat(qp.quote_part) || 0;
+            }
+          });
+        }
+
+        // Pour chaque période, créer un appel par propriétaire concerné
+        for (const periode of periodes) {
+          for (const prop of propsConcernes) {
+            let montantProprio = 0;
+
+            if (charge.cle_repartition === 'milliemes') {
+              if (totalMilliemesConcernes > 0) {
+                montantProprio = periode.montant * (parseFloat(prop.milliemes) || 0) / totalMilliemesConcernes;
+              }
+            } else if (charge.cle_repartition === 'egalitaire') {
+              montantProprio = periode.montant / propsConcernes.length;
+            } else if (charge.cle_repartition === 'custom') {
+              const qp = quotesPartsMap[prop.id];
+              if (qp) montantProprio = periode.montant * qp / 100;
+            }
+
+            if (montantProprio > 0.005) { // Seuil minimum 0.01€
+              await pool.query(`
+                INSERT INTO appels_charges 
+                  (charge_recurrente_id, proprietaire_id, exercice_id,
+                   periode_debut, periode_fin, montant_appele, date_echeance, statut)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, 'en_attente')
+              `, [
+                charge.id, prop.id, exercice.id,
+                periode.debut, periode.fin,
+                Math.round(montantProprio * 100) / 100, 
+                periode.debut
+              ]);
+              appelsGeneres++;
+            }
+          }
+        }
+      }
+
+      console.log(`✅ Exercice ${annee}: ${appelsGeneres} appels de charges générés à partir de ${chargesTraitees} charges`);
+
+    } catch (chargeErr) {
+      // Si la table n'existe pas encore ou erreur, on continue quand même
+      console.log(`⚠️ Génération appels de charges: ${chargeErr.message}`);
+    }
+
     await pool.query('COMMIT');
 
     console.log(`✅ Exercice ${annee} created for immeuble ${immeubleId} with ${ranReporte} RAN reports`);
@@ -234,7 +377,11 @@ export async function createExercice(req, res) {
       message: `Exercice ${annee} créé avec report des soldes`,
       exercice,
       proprietairesInitialises: proprietairesResult.rows.length,
-      ranReporte: ranReporte > 0
+      ranReporte: ranReporte > 0,
+      appelsCharges: {
+        chargesTraitees,
+        appelsGeneres
+      }
     });
 
   } catch (error) {
@@ -245,13 +392,12 @@ export async function createExercice(req, res) {
 }
 
 // ============================================
-// GET SOLDE PROPRIETAIRE - Situation financière avec RAN
+// GET SOLDE PROPRIETAIRE
 // ============================================
 export async function getSoldeProprietaire(req, res) {
   const { immeubleId, exerciceId, proprietaireId } = req.params;
 
   try {
-    // Vérifier accès
     const immeubleCheck = await pool.query(
       'SELECT id FROM immeubles WHERE id = $1 AND user_id = $2 AND archived_at IS NULL',
       [immeubleId, req.user.id]
@@ -261,7 +407,6 @@ export async function getSoldeProprietaire(req, res) {
       return res.status(404).json({ error: 'Not found', message: 'Immeuble not found' });
     }
 
-    // Récupérer le solde
     const soldeResult = await pool.query(`
       SELECT 
         se.*,
@@ -302,15 +447,13 @@ export async function getSoldeProprietaire(req, res) {
 }
 
 // ============================================
-// CLÔTURER EXERCICE - VERSION CORRIGÉE
-// Calcule les soldes de la même manière que le frontend
+// CLÔTURER EXERCICE
 // ============================================
 export async function cloturerExercice(req, res) {
   const { immeubleId, id } = req.params;
   const { notesCloture, dateAgApprobation, pvAgReference } = req.body;
 
   try {
-    // Vérifier accès
     const exerciceCheck = await pool.query(`
       SELECT e.* FROM exercices e
       JOIN immeubles i ON e.immeuble_id = i.id
@@ -333,9 +476,6 @@ export async function cloturerExercice(req, res) {
 
     await pool.query('BEGIN');
 
-    // =====================================================
-    // 1. Récupérer tous les propriétaires actifs de l'immeuble
-    // =====================================================
     const proprietairesResult = await pool.query(`
       SELECT id, nom, prenom, COALESCE(milliemes, 0) as milliemes
       FROM proprietaires 
@@ -347,9 +487,6 @@ export async function cloturerExercice(req, res) {
 
     console.log(`📊 Clôture ${annee}: ${proprietaires.length} propriétaires, ${totalMilliemes} millièmes total`);
 
-    // =====================================================
-    // 2. Calculer le total des charges pour l'année
-    // =====================================================
     const chargesResult = await pool.query(`
       SELECT COALESCE(SUM(ABS(montant)), 0) as total
       FROM transactions 
@@ -359,18 +496,13 @@ export async function cloturerExercice(req, res) {
     `, [immeubleId, annee]);
     
     const totalCharges = parseFloat(chargesResult.rows[0].total || 0);
-    console.log(`💰 Total charges ${annee}: ${totalCharges}€`);
 
-    // =====================================================
-    // 3. Pour chaque propriétaire, calculer son solde final
-    // =====================================================
     const soldesCalcules = [];
 
     for (const prop of proprietaires) {
       const milliemes = parseFloat(prop.milliemes || 0);
       const pourcentage = totalMilliemes > 0 ? milliemes / totalMilliemes : 0;
 
-      // RAN (Report À Nouveau) = solde_debut de l'exercice actuel
       const ranResult = await pool.query(`
         SELECT COALESCE(solde_debut, 0) as ran
         FROM soldes_exercices 
@@ -379,7 +511,6 @@ export async function cloturerExercice(req, res) {
       
       const ran = parseFloat(ranResult.rows[0]?.ran || 0);
 
-      // Dépôts attribués à ce propriétaire pour cette année
       const depotsResult = await pool.query(`
         SELECT COALESCE(SUM(ABS(montant)), 0) as total
         FROM transactions 
@@ -390,27 +521,37 @@ export async function cloturerExercice(req, res) {
       `, [immeubleId, annee, prop.id]);
       
       const depots = parseFloat(depotsResult.rows[0].total || 0);
-
-      // Quote-part des charges selon les millièmes
       const chargesProprietaire = totalCharges * pourcentage;
 
-      // Solde final = RAN + Dépôts - Charges
-      const soldeFin = ran + depots - chargesProprietaire;
+      // ✅ Inclure aussi les appels de charges récurrentes
+      let totalAppeleCharges = 0;
+      let totalPayeCharges = 0;
+      try {
+        const acResult = await pool.query(`
+          SELECT 
+            COALESCE(SUM(montant_appele), 0) as total_appele,
+            COALESCE(SUM(montant_paye), 0) as total_paye
+          FROM appels_charges
+          WHERE proprietaire_id = $1 AND exercice_id = $2
+        `, [prop.id, id]);
+        totalAppeleCharges = parseFloat(acResult.rows[0].total_appele || 0);
+        totalPayeCharges = parseFloat(acResult.rows[0].total_paye || 0);
+      } catch (e) { /* table might not exist */ }
+
+      const soldeFin = ran + depots + totalPayeCharges - chargesProprietaire - totalAppeleCharges;
 
       soldesCalcules.push({
         proprietaire_id: prop.id,
         nom: `${prop.prenom || ''} ${prop.nom}`.trim(),
         milliemes,
-        pourcentage: (pourcentage * 100).toFixed(2),
         ran,
         depots,
         charges: chargesProprietaire,
+        appelsChargesAppele: totalAppeleCharges,
+        appelsChargesPaye: totalPayeCharges,
         solde_fin: soldeFin
       });
 
-      console.log(`  👤 ${prop.prenom || ''} ${prop.nom}: RAN=${ran.toFixed(2)}€ + Dépôts=${depots.toFixed(2)}€ - Charges=${chargesProprietaire.toFixed(2)}€ = ${soldeFin.toFixed(2)}€`);
-
-      // Mettre à jour ou créer le solde dans soldes_exercices
       await pool.query(`
         INSERT INTO soldes_exercices (
           exercice_id, proprietaire_id, solde_debut, total_provisions, total_charges, total_ajustements, solde_fin
@@ -421,12 +562,9 @@ export async function cloturerExercice(req, res) {
           total_charges = $5,
           solde_fin = $6,
           updated_at = CURRENT_TIMESTAMP
-      `, [id, prop.id, ran, depots, chargesProprietaire, soldeFin]);
+      `, [id, prop.id, ran, depots + totalPayeCharges, chargesProprietaire + totalAppeleCharges, soldeFin]);
     }
 
-    // =====================================================
-    // 4. Clôturer l'exercice
-    // =====================================================
     await pool.query(`
       UPDATE exercices SET
         statut = 'cloture',
@@ -439,12 +577,9 @@ export async function cloturerExercice(req, res) {
       WHERE id = $5
     `, [req.user.id, notesCloture, dateAgApprobation, pvAgReference, id]);
 
-    // =====================================================
-    // 5. Reporter les soldes vers l'exercice suivant
-    // =====================================================
+    // Reporter les soldes vers l'exercice suivant
     const nextYear = annee + 1;
     
-    // Vérifier/créer l'exercice suivant
     let exerciceSuivantResult = await pool.query(
       'SELECT id FROM exercices WHERE immeuble_id = $1 AND annee = $2',
       [immeubleId, nextYear]
@@ -454,7 +589,6 @@ export async function cloturerExercice(req, res) {
     let exerciceSuivantCree = false;
 
     if (exerciceSuivantResult.rows.length === 0) {
-      // Créer l'exercice suivant
       const createResult = await pool.query(`
         INSERT INTO exercices (immeuble_id, annee, date_debut, date_fin, statut)
         VALUES ($1, $2, $3, $4, 'ouvert')
@@ -463,12 +597,10 @@ export async function cloturerExercice(req, res) {
       
       exerciceSuivantId = createResult.rows[0].id;
       exerciceSuivantCree = true;
-      console.log(`📅 Exercice ${nextYear} créé automatiquement`);
     } else {
       exerciceSuivantId = exerciceSuivantResult.rows[0].id;
     }
 
-    // Reporter chaque solde vers l'exercice suivant
     let ranReportCount = 0;
     for (const solde of soldesCalcules) {
       await pool.query(`
@@ -483,8 +615,6 @@ export async function cloturerExercice(req, res) {
       
       ranReportCount++;
     }
-
-    console.log(`✅ ${ranReportCount} soldes reportés vers ${nextYear}`);
 
     await pool.query('COMMIT');
 
@@ -510,13 +640,12 @@ export async function cloturerExercice(req, res) {
 }
 
 // ============================================
-// RECALCULER RAN - Endpoint pour forcer le recalcul
+// RECALCULER RAN
 // ============================================
 export async function recalculerRAN(req, res) {
   const { immeubleId, id } = req.params;
 
   try {
-    // Vérifier accès
     const exerciceCheck = await pool.query(`
       SELECT e.* FROM exercices e
       JOIN immeubles i ON e.immeuble_id = i.id
@@ -529,7 +658,6 @@ export async function recalculerRAN(req, res) {
 
     const exercice = exerciceCheck.rows[0];
 
-    // Récupérer l'exercice précédent clôturé
     const exercicePrecedent = await pool.query(`
       SELECT se.proprietaire_id, se.solde_fin
       FROM exercices e
@@ -547,7 +675,6 @@ export async function recalculerRAN(req, res) {
     await pool.query('BEGIN');
 
     let updated = 0;
-
     for (const solde of exercicePrecedent.rows) {
       await pool.query(`
         UPDATE soldes_exercices SET
@@ -560,8 +687,6 @@ export async function recalculerRAN(req, res) {
     }
 
     await pool.query('COMMIT');
-
-    console.log(`✅ RAN recalculé pour exercice ${exercice.annee}: ${updated} propriétaires mis à jour`);
 
     res.json({
       success: true,
@@ -590,7 +715,6 @@ export async function createAppelFonds(req, res) {
     montantTotal
   } = req.body;
 
-  // Validation
   if (!libelle || !dateAppel || !dateEcheance || !montantTotal) {
     return res.status(400).json({ 
       error: 'Validation error',
@@ -599,7 +723,6 @@ export async function createAppelFonds(req, res) {
   }
 
   try {
-    // Vérifier accès
     const exerciceCheck = await pool.query(`
       SELECT e.* FROM exercices e
       JOIN immeubles i ON e.immeuble_id = i.id
@@ -621,7 +744,6 @@ export async function createAppelFonds(req, res) {
 
     await pool.query('BEGIN');
 
-    // Déterminer le numéro d'appel si non fourni
     let appelNumero = numero;
     if (!appelNumero) {
       const countResult = await pool.query(
@@ -631,7 +753,6 @@ export async function createAppelFonds(req, res) {
       appelNumero = parseInt(countResult.rows[0].count) + 1;
     }
 
-    // Créer l'appel de fonds
     const appelResult = await pool.query(`
       INSERT INTO appels_fonds (
         exercice_id, type, numero, libelle,
@@ -642,18 +763,15 @@ export async function createAppelFonds(req, res) {
 
     const appel = appelResult.rows[0];
 
-    // Récupérer les propriétaires actifs avec leurs millièmes
     const proprietairesResult = await pool.query(
       'SELECT id, milliemes FROM proprietaires WHERE immeuble_id = $1 AND actif = true',
       [immeubleId]
     );
 
-    // Calculer le total des millièmes
     const totalMilliemes = proprietairesResult.rows.reduce(
       (sum, p) => sum + parseInt(p.milliemes), 0
     );
 
-    // Créer un appel pour chaque propriétaire au prorata des millièmes
     const appelsProprietaires = [];
     for (const proprietaire of proprietairesResult.rows) {
       const montantDu = (parseFloat(montantTotal) * parseInt(proprietaire.milliemes)) / totalMilliemes;
@@ -669,8 +787,6 @@ export async function createAppelFonds(req, res) {
     }
 
     await pool.query('COMMIT');
-
-    console.log(`✅ Appel de fonds créé: ${libelle} (${montantTotal}€) pour ${proprietairesResult.rows.length} propriétaires`);
 
     res.status(201).json({
       success: true,
@@ -705,7 +821,6 @@ export async function enregistrerPaiementAppel(req, res) {
   try {
     await pool.query('BEGIN');
 
-    // Récupérer l'appel propriétaire
     const apResult = await pool.query(`
       SELECT ap.*, af.exercice_id
       FROM appels_proprietaires ap
@@ -721,13 +836,11 @@ export async function enregistrerPaiementAppel(req, res) {
     const appelProp = apResult.rows[0];
     const nouveauMontantPaye = parseFloat(appelProp.montant_paye) + parseFloat(montant);
     
-    // Déterminer le nouveau statut
     let nouveauStatut = 'partiel';
     if (nouveauMontantPaye >= parseFloat(appelProp.montant_du)) {
       nouveauStatut = 'paye';
     }
 
-    // Mettre à jour l'appel propriétaire
     await pool.query(`
       UPDATE appels_proprietaires SET
         montant_paye = $1,
@@ -738,14 +851,12 @@ export async function enregistrerPaiementAppel(req, res) {
       WHERE id = $5
     `, [nouveauMontantPaye, nouveauStatut, datePaiement, transactionId, appelProp.id]);
 
-    // Mettre à jour le solde de l'exercice
     await pool.query(`
       UPDATE soldes_exercices SET
         total_provisions = total_provisions + $1
       WHERE exercice_id = $2 AND proprietaire_id = $3
     `, [montant, appelProp.exercice_id, proprietaireId]);
 
-    // Vérifier si l'appel global est complet
     const statusCheck = await pool.query(`
       SELECT 
         COUNT(*) as total,
@@ -778,15 +889,15 @@ export async function enregistrerPaiementAppel(req, res) {
 }
 
 // ============================================
-// DÉCOMPTE ANNUEL - Vue complète avec RAN
+// DÉCOMPTE ANNUEL - ✅ ENRICHI avec 3 sections de fonds
 // ============================================
 export async function getDecompteAnnuel(req, res) {
   const { immeubleId, exerciceId, proprietaireId } = req.params;
 
   try {
-    // Vérifier accès
     const check = await pool.query(`
-      SELECT e.*, i.nom as immeuble_nom, i.adresse as immeuble_adresse
+      SELECT e.*, i.nom as immeuble_nom, i.adresse as immeuble_adresse, 
+             i.nombre_total_parts
       FROM exercices e
       JOIN immeubles i ON e.immeuble_id = i.id
       WHERE e.id = $1 AND i.id = $2 AND i.user_id = $3
@@ -798,7 +909,6 @@ export async function getDecompteAnnuel(req, res) {
 
     const exercice = check.rows[0];
 
-    // Récupérer les infos propriétaire et solde
     const soldeResult = await pool.query(`
       SELECT 
         se.*,
@@ -817,8 +927,97 @@ export async function getDecompteAnnuel(req, res) {
     }
 
     const solde = soldeResult.rows[0];
+    const totalMilliemes = parseInt(exercice.nombre_total_parts) || 1000;
 
-    // Récupérer le détail des charges par catégorie
+    // =====================================================
+    // ✅ NOUVEAU: Récupérer appels de charges par type de fonds
+    // =====================================================
+    let fondsRoulement = { appels: [], chargesGroupees: [], totalAppele: 0, totalPaye: 0, solde: 0 };
+    let fondsReserve = { appels: [], chargesGroupees: [], totalAppele: 0, totalPaye: 0, solde: 0 };
+    let chargesSpeciales = { appels: [], chargesGroupees: [], totalAppele: 0, totalPaye: 0, solde: 0 };
+
+    try {
+      const appelsResult = await pool.query(`
+        SELECT 
+          cr.type as charge_type,
+          cr.libelle as charge_libelle,
+          cr.montant_annuel as charge_montant_annuel,
+          cr.frequence,
+          ac.periode_debut,
+          ac.periode_fin,
+          ac.montant_appele,
+          ac.montant_paye,
+          ac.statut,
+          ac.date_echeance
+        FROM appels_charges ac
+        JOIN charges_recurrentes cr ON ac.charge_recurrente_id = cr.id
+        WHERE ac.proprietaire_id = $1
+          AND ac.exercice_id = $2
+        ORDER BY cr.type, ac.periode_debut
+      `, [proprietaireId, exerciceId]);
+
+      // Structurer par type
+      const fondsMap = {
+        fonds_roulement: fondsRoulement,
+        fonds_reserve: fondsReserve,
+        charges_speciales: chargesSpeciales,
+      };
+
+      for (const appel of appelsResult.rows) {
+        const fonds = fondsMap[appel.charge_type];
+        if (!fonds) continue;
+
+        const item = {
+          libelle: appel.charge_libelle,
+          periodeDebut: appel.periode_debut,
+          periodeFin: appel.periode_fin,
+          montantAppele: parseFloat(appel.montant_appele),
+          montantPaye: parseFloat(appel.montant_paye),
+          statut: appel.statut,
+          frequence: appel.frequence,
+          montantAnnuelCharge: parseFloat(appel.charge_montant_annuel),
+        };
+
+        fonds.appels.push(item);
+        fonds.totalAppele += item.montantAppele;
+        fonds.totalPaye += item.montantPaye;
+      }
+
+      // Grouper par charge (libellé) pour affichage condensé
+      const groupByCharge = (fonds) => {
+        const grouped = {};
+        fonds.appels.forEach(a => {
+          if (!grouped[a.libelle]) {
+            grouped[a.libelle] = {
+              libelle: a.libelle,
+              montantAnnuelCharge: a.montantAnnuelCharge,
+              frequence: a.frequence,
+              periodes: [],
+              totalAppele: 0,
+              totalPaye: 0,
+            };
+          }
+          grouped[a.libelle].periodes.push(a);
+          grouped[a.libelle].totalAppele += a.montantAppele;
+          grouped[a.libelle].totalPaye += a.montantPaye;
+        });
+        return Object.values(grouped);
+      };
+
+      fondsRoulement.chargesGroupees = groupByCharge(fondsRoulement);
+      fondsRoulement.solde = fondsRoulement.totalPaye - fondsRoulement.totalAppele;
+      fondsReserve.chargesGroupees = groupByCharge(fondsReserve);
+      fondsReserve.solde = fondsReserve.totalPaye - fondsReserve.totalAppele;
+      chargesSpeciales.chargesGroupees = groupByCharge(chargesSpeciales);
+      chargesSpeciales.solde = chargesSpeciales.totalPaye - chargesSpeciales.totalAppele;
+
+    } catch (e) {
+      console.log('⚠️ appels_charges query failed:', e.message);
+    }
+
+    // =====================================================
+    // Charges comptables classiques (hors appels récurrents)
+    // =====================================================
     const chargesResult = await pool.query(`
       SELECT 
         f.categorie,
@@ -831,7 +1030,7 @@ export async function getDecompteAnnuel(req, res) {
       ORDER BY total DESC
     `, [exerciceId, proprietaireId]);
 
-    // Récupérer les versements (provisions payées)
+    // Versements classiques (appels de fonds manuels)
     const versementsResult = await pool.query(`
       SELECT 
         af.libelle,
@@ -845,7 +1044,7 @@ export async function getDecompteAnnuel(req, res) {
       ORDER BY af.date_appel ASC
     `, [exerciceId, proprietaireId]);
 
-    // Calculer le total général immeuble pour comparaison
+    // Totaux immeuble pour comparaison
     const totauxImmeuble = await pool.query(`
       SELECT 
         SUM(se.total_provisions) as total_provisions,
@@ -854,13 +1053,24 @@ export async function getDecompteAnnuel(req, res) {
       WHERE se.exercice_id = $1
     `, [exerciceId]);
 
+    // Calcul du solde final
+    const ran = parseFloat(solde.solde_debut) || 0;
+    const totalAppeleGlobal = fondsRoulement.totalAppele + fondsReserve.totalAppele + chargesSpeciales.totalAppele;
+    const totalPayeGlobal = fondsRoulement.totalPaye + fondsReserve.totalPaye + chargesSpeciales.totalPaye;
+    const chargesComptables = parseFloat(solde.total_charges) || 0;
+    const versementsTotal = parseFloat(solde.total_provisions) || 0;
+    const ajustements = parseFloat(solde.total_ajustements) || 0;
+
+    const soldeFinal = parseFloat(solde.solde_fin) || 0;
+
     res.json({
       success: true,
       decompte: {
         // En-tête
         immeuble: {
           nom: exercice.immeuble_nom,
-          adresse: exercice.immeuble_adresse
+          adresse: exercice.immeuble_adresse,
+          totalMilliemes,
         },
         exercice: {
           annee: exercice.annee,
@@ -873,44 +1083,60 @@ export async function getDecompteAnnuel(req, res) {
           prenom: solde.prenom,
           appartement: solde.numero_appartement,
           milliemes: solde.milliemes,
-          pourcentage: ((solde.milliemes / 1000) * 100).toFixed(2)
+          pourcentage: ((solde.milliemes / totalMilliemes) * 100).toFixed(2)
         },
 
         // Section A: Report À Nouveau
         reportANouveau: {
-          solde: parseFloat(solde.solde_debut),
-          type: parseFloat(solde.solde_debut) >= 0 ? 'créditeur' : 'débiteur'
+          solde: ran,
+          type: ran >= 0 ? 'créditeur' : 'débiteur'
         },
 
-        // Section B: Charges de l'exercice
+        // ✅ NOUVEAU: Sections B1/B2/B3 par type de fonds
+        fondsRoulement,
+        fondsReserve,
+        chargesSpeciales,
+
+        // Section C: Charges comptables classiques
         charges: {
           detail: chargesResult.rows,
-          total: parseFloat(solde.total_charges)
+          total: chargesComptables
         },
 
-        // Section C: Versements (provisions)
+        // Section D: Versements classiques
         versements: {
           detail: versementsResult.rows,
-          total: parseFloat(solde.total_provisions)
+          total: versementsTotal
         },
 
-        // Section D: Ajustements
-        ajustements: parseFloat(solde.total_ajustements),
+        // Section E: Ajustements
+        ajustements,
 
-        // Section E: Solde final
+        // Section F: Solde final
         soldeFinal: {
-          montant: parseFloat(solde.solde_fin),
-          type: parseFloat(solde.solde_fin) >= 0 ? 'créditeur' : 'débiteur',
-          message: parseFloat(solde.solde_fin) >= 0 
+          montant: soldeFinal,
+          type: soldeFinal >= 0 ? 'créditeur' : 'débiteur',
+          message: soldeFinal >= 0 
             ? 'Ce solde sera reporté sur le prochain exercice'
             : 'Montant à régulariser'
         },
 
-        // Comparaison avec l'immeuble
+        // Récapitulatif global
+        recapitulatif: {
+          ran,
+          totalAppeleChargesRecurrentes: Math.round(totalAppeleGlobal * 100) / 100,
+          totalPayeChargesRecurrentes: Math.round(totalPayeGlobal * 100) / 100,
+          chargesComptables: Math.round(chargesComptables * 100) / 100,
+          versementsClassiques: Math.round(versementsTotal * 100) / 100,
+          ajustements: Math.round(ajustements * 100) / 100,
+          soldeFinal: Math.round(soldeFinal * 100) / 100,
+        },
+
+        // Comparaison
         comparaison: {
-          totalChargesImmeuble: parseFloat(totauxImmeuble.rows[0].total_charges),
+          totalChargesImmeuble: parseFloat(totauxImmeuble.rows[0]?.total_charges || 0),
           partProprietaire: solde.total_charges > 0 
-            ? ((parseFloat(solde.total_charges) / parseFloat(totauxImmeuble.rows[0].total_charges)) * 100).toFixed(2)
+            ? ((parseFloat(solde.total_charges) / parseFloat(totauxImmeuble.rows[0]?.total_charges || 1)) * 100).toFixed(2)
             : 0
         }
       }
@@ -919,5 +1145,133 @@ export async function getDecompteAnnuel(req, res) {
   } catch (error) {
     console.error('Error generating decompte annuel:', error);
     res.status(500).json({ error: 'Failed to generate decompte', message: error.message });
+  }
+}
+
+// ============================================
+// ✅ NOUVEAU: BILAN CHARGES RÉCURRENTES PAR ANNÉE
+// GET /api/v1/immeubles/:immeubleId/exercices/:exerciceId/bilan-charges
+// ============================================
+export async function getBilanCharges(req, res) {
+  const { immeubleId, exerciceId } = req.params;
+
+  try {
+    const immCheck = await pool.query(
+      'SELECT id, nombre_total_parts FROM immeubles WHERE id = $1 AND user_id = $2',
+      [immeubleId, req.user.id]
+    );
+    if (immCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Immeuble non trouvé' });
+    }
+
+    const exerciceCheck = await pool.query(
+      'SELECT * FROM exercices WHERE id = $1 AND immeuble_id = $2',
+      [exerciceId, immeubleId]
+    );
+    if (exerciceCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Exercice non trouvé' });
+    }
+
+    const annee = exerciceCheck.rows[0].annee;
+
+    const appelsResult = await pool.query(`
+      SELECT 
+        cr.type as charge_type,
+        cr.libelle as charge_libelle,
+        cr.montant_annuel,
+        cr.frequence,
+        cr.cle_repartition,
+        ac.proprietaire_id,
+        p.nom as proprietaire_nom,
+        p.prenom as proprietaire_prenom,
+        p.milliemes,
+        SUM(ac.montant_appele) as total_appele,
+        SUM(ac.montant_paye) as total_paye,
+        COUNT(ac.id) as nb_periodes,
+        COUNT(CASE WHEN ac.statut = 'paye' THEN 1 END) as nb_payees,
+        COUNT(CASE WHEN ac.statut = 'en_retard' THEN 1 END) as nb_retard
+      FROM appels_charges ac
+      JOIN charges_recurrentes cr ON ac.charge_recurrente_id = cr.id
+      JOIN proprietaires p ON ac.proprietaire_id = p.id
+      WHERE ac.exercice_id = $1
+      GROUP BY cr.id, cr.type, cr.libelle, cr.montant_annuel, cr.frequence, cr.cle_repartition,
+               ac.proprietaire_id, p.nom, p.prenom, p.milliemes
+      ORDER BY 
+        CASE cr.type 
+          WHEN 'fonds_roulement' THEN 1
+          WHEN 'fonds_reserve' THEN 2
+          WHEN 'charges_speciales' THEN 3
+        END,
+        p.nom
+    `, [exerciceId]);
+
+    // Structurer par type de fonds
+    const bilanParType = {
+      fonds_roulement: { label: 'Fonds de roulement', charges: [], totalAppele: 0, totalPaye: 0 },
+      fonds_reserve: { label: 'Fonds de réserve', charges: [], totalAppele: 0, totalPaye: 0 },
+      charges_speciales: { label: 'Charges spéciales', charges: [], totalAppele: 0, totalPaye: 0 },
+    };
+
+    const bilanParProprietaire = {};
+
+    for (const row of appelsResult.rows) {
+      const type = row.charge_type;
+      const appele = parseFloat(row.total_appele) || 0;
+      const paye = parseFloat(row.total_paye) || 0;
+
+      if (bilanParType[type]) {
+        bilanParType[type].charges.push({
+          libelle: row.charge_libelle,
+          proprietaireId: row.proprietaire_id,
+          proprietaireNom: `${row.proprietaire_prenom || ''} ${row.proprietaire_nom}`.trim(),
+          milliemes: row.milliemes,
+          totalAppele: appele,
+          totalPaye: paye,
+          solde: paye - appele,
+          nbPeriodes: parseInt(row.nb_periodes),
+          nbPayees: parseInt(row.nb_payees),
+          nbRetard: parseInt(row.nb_retard),
+        });
+        bilanParType[type].totalAppele += appele;
+        bilanParType[type].totalPaye += paye;
+      }
+
+      if (!bilanParProprietaire[row.proprietaire_id]) {
+        bilanParProprietaire[row.proprietaire_id] = {
+          proprietaireId: row.proprietaire_id,
+          nom: row.proprietaire_nom,
+          prenom: row.proprietaire_prenom,
+          milliemes: row.milliemes,
+          fondsRoulement: { appele: 0, paye: 0 },
+          fondsReserve: { appele: 0, paye: 0 },
+          chargesSpeciales: { appele: 0, paye: 0 },
+          totalAppele: 0,
+          totalPaye: 0,
+        };
+      }
+
+      const bp = bilanParProprietaire[row.proprietaire_id];
+      if (type === 'fonds_roulement') { bp.fondsRoulement.appele += appele; bp.fondsRoulement.paye += paye; }
+      else if (type === 'fonds_reserve') { bp.fondsReserve.appele += appele; bp.fondsReserve.paye += paye; }
+      else if (type === 'charges_speciales') { bp.chargesSpeciales.appele += appele; bp.chargesSpeciales.paye += paye; }
+      bp.totalAppele += appele;
+      bp.totalPaye += paye;
+    }
+
+    const totalGlobal = {
+      appele: Object.values(bilanParType).reduce((s, t) => s + t.totalAppele, 0),
+      paye: Object.values(bilanParType).reduce((s, t) => s + t.totalPaye, 0),
+    };
+    totalGlobal.solde = totalGlobal.paye - totalGlobal.appele;
+
+    res.json({
+      annee: parseInt(annee),
+      bilanParType,
+      bilanParProprietaire: Object.values(bilanParProprietaire),
+      totalGlobal,
+    });
+  } catch (error) {
+    console.error('Erreur getBilanCharges:', error);
+    res.status(500).json({ error: error.message });
   }
 }
