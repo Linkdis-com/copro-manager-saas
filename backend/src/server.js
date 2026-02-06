@@ -117,6 +117,16 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/subscriptions-admin', adminSubscriptionsRoutes);
 app.use('/api/v1/admin/promo-codes', adminPromoRoutes);
 
+
+
+
+// =====================================================
+// 📍 ROUTES DÉVELOPPEMENT
+// =====================================================
+app.use('/api/v1/dev', devRoutes);         // a supprimer à la fin du projet
+
+
+
 // =====================================================
 // 🔐 MIDDLEWARE D'AUTHENTIFICATION
 // Toutes les routes /api/v1 APRÈS cette ligne nécessitent un token
@@ -153,11 +163,6 @@ app.use('/api/v1/referral', referralRoutes);
 // SUPPRIMÉ : app.use('/api/v1/temp-migration', migrationRoutes);  ← LIGNE SUPPRIMÉE (était en doublon)
 app.use('/api/v1/promo', promoRoutes);
 
-
-// =====================================================
-// 📍 ROUTES DÉVELOPPEMENT
-// =====================================================
-app.use('/api/v1/dev', devRoutes);
 
 // =====================================================
 // 📍 ROUTES MIGRATIONS (TEMPORAIRES)
