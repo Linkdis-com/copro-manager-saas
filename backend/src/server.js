@@ -13,6 +13,7 @@ import { authenticate, requireEmailVerified } from './middleware/auth.js';
 // =====================================================
 import authRoutes from './routes/auth.routes.js';
 
+import tempChargeRoutes from './routes/temp-charge.js';   // à effacer 
 // =====================================================
 // 📁 ROUTES PROTÉGÉES (avec authentification user)
 // =====================================================
@@ -58,7 +59,6 @@ import createSubscriptionsTableRoutes from './routes/create-subscriptions-table.
 import promoRoutes from './routes/promo.routes.js';
 import adminPromoRoutes from './routes/admin.promo.routes.js';
 
-import tempChargeRoutes from './routes/temp-charge.js';   // à effacer 
 
 // =====================================================
 // 🚀 APP CONFIGURATION
@@ -110,6 +110,7 @@ app.get('/health', (req, res) => {
 // =====================================================
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/setup', setupRoutes);
+app.use('/api/v1', tempChargeRoutes); // LIGNE à SUPPRIMÉE (était en doublon)
 // =====================================================
 // 📍 ROUTES ADMIN (PROTECTION ADMIN DANS LES ROUTES)
 // =====================================================
@@ -151,7 +152,7 @@ app.use('/api/v1/referral', referralRoutes);
 
 // SUPPRIMÉ : app.use('/api/v1/temp-migration', migrationRoutes);  ← LIGNE SUPPRIMÉE (était en doublon)
 app.use('/api/v1/promo', promoRoutes);
-app.use('/api/v1', tempChargeRoutes); // LIGNE à SUPPRIMÉE (était en doublon)
+
 
 // =====================================================
 // 📍 ROUTES DÉVELOPPEMENT
