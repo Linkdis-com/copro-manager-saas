@@ -1,3 +1,4 @@
+throw new Error('Test ErrorBoundary');
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
