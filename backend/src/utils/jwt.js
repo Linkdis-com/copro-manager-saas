@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = '15m'; // Access token : 15 minutes
-const REFRESH_TOKEN_EXPIRES_IN = '7d'; // Refresh token : 7 jours
+const JWT_EXPIRES_IN = '4h'; // Access token : 15 minutes
+const REFRESH_TOKEN_EXPIRES_IN = '30d'; // Refresh token : 7 jours
 
 // Générer un access token (court, 15 min)
 export function generateAccessToken(userId) {

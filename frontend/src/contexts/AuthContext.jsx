@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false); // 
 
   // Charger l'utilisateur depuis localStorage au démarrage
 useEffect(() => {
@@ -17,6 +18,22 @@ useEffect(() => {
   }
   setLoading(false);
 }, []);
+
+  // ✅ AJOUT : Écouter les événements de déconnexion depuis api.js
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setSessionExpired(true);
+      setUser(null);
+      
+      // Afficher le message pendant 3 secondes puis rediriger
+      setTimeout(() => {
+        window.location.href = '/login?session=expired';
+      }, 3000);
+    };
+
+    window.addEventListener('session:expired', handleSessionExpired);
+    return () => window.removeEventListener('session:expired', handleSessionExpired);
+  }, []);
 
   // Fonction de login
   const login = async (email, password) => {
@@ -30,6 +47,7 @@ useEffect(() => {
       localStorage.setItem('user', JSON.stringify(userData));
       
       setUser(userData);
+      setSessionExpired(false); // ✅ Réinitialiser le flag
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
@@ -151,16 +169,38 @@ useEffect(() => {
     isAuthenticated: !!user,
     isTokenExpired,
     refreshTokenIfNeeded,
+    sessionExpired, 
   };
 
   return (
     <AuthContext.Provider value={value}>
+      {/* ✅ AJOUT : Modal session expirée */}
+      {sessionExpired && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center">
+                <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Session expirée</h3>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Votre session a expiré pour des raisons de sécurité. 
+              Veuillez vous reconnecter pour continuer.
+            </p>
+            <p className="text-sm text-gray-500">
+              Redirection vers la page de connexion...
+            </p>
+          </div>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook personnalisé pour utiliser le contexte
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

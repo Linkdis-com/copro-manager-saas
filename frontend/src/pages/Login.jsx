@@ -15,7 +15,9 @@ function Login() {
   const location = useLocation();
   
   // Message de succès après reset de mot de passe
+ // ✅ MODIFIÉ : Gérer aussi le message session=expired
   const successMessage = location.state?.message;
+  const sessionExpired = new URLSearchParams(location.search).get('session') === 'expired';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,7 +48,15 @@ function Login() {
               Connectez-vous à votre compte
             </p>
           </div>
-          
+          {/* ✅ AJOUT : Message session expirée */}
+          {sessionExpired && (
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-3 text-orange-700">
+              <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Votre session a expiré. Veuillez vous reconnecter.</span>
+            </div>
+          )}
           {/* Success message (after password reset) */}
           {successMessage && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-700">
@@ -71,6 +81,7 @@ function Login() {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -88,6 +99,7 @@ function Login() {
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
