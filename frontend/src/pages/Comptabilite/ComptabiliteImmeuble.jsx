@@ -7,6 +7,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   RefreshCw,
   FileText,
   Search,
@@ -21,7 +23,6 @@ import {
   ArrowRightLeft,
   Lock,
   Upload,
-  ChevronLeft,
   User,
   Printer,
   History
@@ -96,6 +97,20 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
   // State Modal clôture
   const [showClotureModal, setShowClotureModal] = useState(false);
   const [clotureConfirmText, setClotureConfirmText] = useState('');
+
+  // ✅ NOUVEAUX STATES pour création exercice
+  const [showCreateExerciceModal, setShowCreateExerciceModal] = useState(false);
+  const [newExerciceYear, setNewExerciceYear] = useState(currentYear);
+
+  // ✅ NOUVEAUX STATES pour ajout transaction manuelle
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [newTransaction, setNewTransaction] = useState({
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    type: 'charge',
+    montant: '',
+    proprietaire_id: null
+  });
 
   useEffect(() => {
     loadData();
@@ -206,6 +221,7 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
   const getExerciceForYear = (year) => exercices.find(e => e.annee === year);
   const isFutureYear = (year) => year > currentYear;
 
+  // ✅ NOUVELLE FONCTION : Créer exercice (remplace confirm())
   const handleCreateExercice = async (year) => {
     try {
       setSaving(true);
@@ -219,6 +235,7 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
       const exercicesRes = await exercicesService.getAll(immeubleId);
       setExercices(exercicesRes.data.exercices || []);
       setSelectedYear(year);
+      setShowCreateExerciceModal(false);
       
     } catch (err) {
       console.error('Error creating exercice:', err);
@@ -552,71 +569,111 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
               <h3 className="text-base font-semibold text-gray-900">Comptabilité</h3>
             </div>
             
+            {/* ✅ MODIFIÉ : Bouton vert "Importer des extraits" */}
             {onNavigateToImport && (
               <button
                 onClick={onNavigateToImport}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm"
               >
                 <Upload className="h-4 w-4" />
-                Importer
+                Importer des extraits
               </button>
             )}
           </div>
         </div>
 
-        {/* ✅ CORRECTION: Années en tabs horizontaux - utilise availableYears */}
+        {/* ✅ NOUVEAU : Années avec navigation ←→ */}
         <div className="border-b bg-gray-50 px-3 py-2">
-          <div className="flex items-center gap-1 overflow-x-auto">
-            {availableYears.map(year => {
-              const hasExercice = hasExerciceForYear(year);
-              const exercice = getExerciceForYear(year);
-              const isCloture = exercice?.statut === 'cloture';
-              const isFuture = isFutureYear(year);
-              const yearTransactions = transactionsByYear[year] || [];
-              
-              return (
-                <button
-                  key={year}
-                  onClick={() => {
-                    if (!hasExercice && !isFuture) {
-                      if (window.confirm(`Créer l'exercice ${year} ?`)) {
-                        handleCreateExercice(year);
+          <div className="flex items-center justify-between gap-2">
+            {/* Navigation gauche */}
+            <button
+              onClick={() => {
+                const minYear = Math.min(...availableYears);
+                if (!availableYears.includes(minYear - 1)) {
+                  setAvailableYears(prev => [minYear - 1, ...prev].sort((a, b) => b - a));
+                }
+              }}
+              className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-600"
+              title="Années antérieures"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            {/* Années visibles (max 6) */}
+            <div className="flex items-center gap-1 overflow-hidden flex-1 justify-center">
+              {availableYears.slice(0, 6).map(year => {
+                const hasExercice = hasExerciceForYear(year);
+                const exercice = getExerciceForYear(year);
+                const isCloture = exercice?.statut === 'cloture';
+                const isFuture = isFutureYear(year);
+                const yearTransactions = transactionsByYear[year] || [];
+                
+                return (
+                  <button
+                    key={year}
+                    onClick={() => {
+                      if (hasExercice) {
+                        setSelectedYear(year);
+                        setSelectedProprietaire(null);
+                      } else {
+                        // ✅ Ouvrir modal au lieu de confirm()
+                        setNewExerciceYear(year);
+                        setShowCreateExerciceModal(true);
                       }
-                    } else if (isFuture && !hasExercice) {
-                      if (window.confirm(`Activer l'exercice ${year} ?`)) {
-                        handleCreateExercice(year);
-                      }
-                    } else {
-                      setSelectedYear(year);
-                      setSelectedProprietaire(null);
-                    }
-                  }}
-                  className={`relative px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-                    selectedYear === year
-                      ? 'bg-primary-600 text-white shadow-sm'
-                      : hasExercice
-                        ? 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                        : isFuture
-                          ? 'bg-gray-100 text-gray-400 border border-dashed border-gray-300 hover:border-gray-400'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
-                  }`}
-                >
-                  {year}
-                  {hasExercice && (
-                    <span className={`ml-1.5 text-xs ${selectedYear === year ? 'text-white/70' : 'text-gray-400'}`}>
-                      {yearTransactions.length}
-                    </span>
-                  )}
-                  {isCloture && (
-                    <Lock className={`inline ml-1 h-3 w-3 ${selectedYear === year ? 'text-white/70' : 'text-green-500'}`} />
-                  )}
-                  {!hasExercice && !isFuture && (
-                    <Plus className="inline ml-1 h-3 w-3" />
-                  )}
-                </button>
-              );
-            })}
-            
+                    }}
+                    className={`relative px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
+                      selectedYear === year
+                        ? 'bg-primary-600 text-white shadow-sm'
+                        : hasExercice
+                          ? 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                          : 'bg-gray-100 text-gray-400 border border-dashed border-gray-300 hover:border-primary-400 hover:text-primary-600'
+                    }`}
+                  >
+                    {year}
+                    {hasExercice && (
+                      <span className={`ml-1.5 text-xs ${selectedYear === year ? 'text-white/70' : 'text-gray-400'}`}>
+                        {yearTransactions.length}
+                      </span>
+                    )}
+                    {isCloture && (
+                      <Lock className={`inline ml-1 h-3 w-3 ${selectedYear === year ? 'text-white/70' : 'text-green-500'}`} />
+                    )}
+                    {!hasExercice && (
+                      <Plus className="inline ml-1 h-3 w-3" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Navigation droite */}
+            <button
+              onClick={() => {
+                const maxYear = Math.max(...availableYears);
+                if (!availableYears.includes(maxYear + 1)) {
+                  setAvailableYears(prev => [...prev, maxYear + 1].sort((a, b) => b - a));
+                }
+              }}
+              className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-600"
+              title="Années futures"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+
+            {/* ✅ NOUVEAU : Bouton créer exercice */}
+            <button
+              onClick={() => {
+                setNewExerciceYear(currentYear);
+                setShowCreateExerciceModal(true);
+              }}
+              className="flex items-center gap-1 px-2 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              title="Créer un nouvel exercice"
+            >
+              <Plus className="h-3 w-3" />
+              <span className="hidden sm:inline">Exercice</span>
+            </button>
+
+            {/* Bouton clôturer (si exercice ouvert) */}
             {currentExercice && currentExercice.statut === 'ouvert' && (
               <button
                 onClick={() => setShowClotureModal(true)}
@@ -885,7 +942,7 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
           </div>
         </div>
 
-        {/* Filtres */}
+        {/* Filtres + ✅ NOUVEAU Bouton Ajouter */}
         <div className="p-3 border-b flex flex-wrap gap-2 items-center bg-gray-50">
           <div className="relative flex-1 min-w-[150px]">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -907,6 +964,17 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
             <option value="frais">Frais</option>
             <option value="depot">Dépôts</option>
           </select>
+          
+          {/* ✅ NOUVEAU : Bouton ajouter transaction */}
+          {currentExercice?.statut !== 'cloture' && (
+            <button
+              onClick={() => setShowAddTransactionModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Ajouter</span>
+            </button>
+          )}
         </div>
 
         {/* Tableau transactions */}
@@ -1003,6 +1071,207 @@ function ComptabiliteImmeuble({ immeubleId, proprietaires, immeubleNom = '', onN
           </table>
         </div>
       </div>
+
+      {/* ==================== MODAL CRÉATION EXERCICE ==================== */}
+      {showCreateExerciceModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  Créer l'exercice {newExerciceYear}
+                </h2>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                Créer un nouvel exercice comptable pour l'année {newExerciceYear}. 
+                Les soldes de {newExerciceYear - 1} seront automatiquement reportés (RAN).
+              </p>
+              
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                <p className="text-sm text-blue-700">
+                  <Calendar className="h-4 w-4 inline mr-1" />
+                  Période : 01/01/{newExerciceYear} - 31/12/{newExerciceYear}
+                </p>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    handleCreateExercice(newExerciceYear);
+                  }}
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {saving ? 'Création...' : 'Créer l\'exercice'}
+                </button>
+                <button
+                  onClick={() => setShowCreateExerciceModal(false)}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL AJOUTER TRANSACTION ==================== */}
+      {showAddTransactionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-primary-600" />
+                  Ajouter une transaction
+                </h2>
+                <button
+                  onClick={() => setShowAddTransactionModal(false)}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={newTransaction.date}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                {/* Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type *
+                  </label>
+                  <select
+                    value={newTransaction.type}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="charge">Charge</option>
+                    <option value="depot">Dépôt</option>
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description *
+                  </label>
+                  <textarea
+                    value={newTransaction.description}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                    placeholder="Ex: Réparation ascenseur, Provision trimestrielle..."
+                    rows={3}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                {/* Montant */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Montant (€) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newTransaction.montant}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, montant: e.target.value })}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                {/* Propriétaire (si dépôt) */}
+                {newTransaction.type === 'depot' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Propriétaire
+                    </label>
+                    <select
+                      value={newTransaction.proprietaire_id || ''}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, proprietaire_id: e.target.value || null })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">-- Non attribué --</option>
+                      {proprietaires.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.prenom} {p.nom}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optionnel - Permet d'identifier le propriétaire qui a effectué le dépôt
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={async () => {
+                    try {
+                      setSaving(true);
+                      await transactionsService.create(immeubleId, {
+                        date_transaction: newTransaction.date,
+                        description: newTransaction.description,
+                        type: newTransaction.type,
+                        montant: newTransaction.type === 'depot' 
+                          ? Math.abs(parseFloat(newTransaction.montant))
+                          : -Math.abs(parseFloat(newTransaction.montant)),
+                        proprietaire_id: newTransaction.proprietaire_id
+                      });
+                      
+                      setShowAddTransactionModal(false);
+                      setNewTransaction({
+                        date: new Date().toISOString().split('T')[0],
+                        description: '',
+                        type: 'charge',
+                        montant: '',
+                        proprietaire_id: null
+                      });
+                      await loadData();
+                    } catch (err) {
+                      console.error('Error creating transaction:', err);
+                      alert('Erreur lors de la création');
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving || !newTransaction.description || !newTransaction.montant}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Enregistrer
+                </button>
+                <button
+                  onClick={() => setShowAddTransactionModal(false)}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ==================== MODAL ÉDITION ==================== */}
       {editingTransaction && (
