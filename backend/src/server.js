@@ -57,6 +57,9 @@ import createSubscriptionsTableRoutes from './routes/create-subscriptions-table.
 // =====================================================
 import promoRoutes from './routes/promo.routes.js';
 import adminPromoRoutes from './routes/admin.promo.routes.js';
+
+import tempChargeRoutes from './routes/temp-charge.js';   // à effacer 
+
 // =====================================================
 // 🚀 APP CONFIGURATION
 // =====================================================
@@ -148,7 +151,7 @@ app.use('/api/v1/referral', referralRoutes);
 
 // SUPPRIMÉ : app.use('/api/v1/temp-migration', migrationRoutes);  ← LIGNE SUPPRIMÉE (était en doublon)
 app.use('/api/v1/promo', promoRoutes);
-
+app.use('/api/v1', tempChargeRoutes); // LIGNE à SUPPRIMÉE (était en doublon)
 
 // =====================================================
 // 📍 ROUTES DÉVELOPPEMENT
