@@ -92,7 +92,8 @@ export async function getTransaction(req, res) {
 // CREATE - Optimisé
 export async function createTransaction(req, res) {
   const { immeubleId } = req.params;
-  const { factureId, dateTransaction, type, montant, description, reference, repartition = [] } = req.body;
+  //const { factureId, dateTransaction, type, montant, description, reference, repartition = [] } = req.body;
+const { factureId, dateTransaction, type, montant, description, reference, tags = [], proprietaire_id = null, repartition = [] } = req.body;
 
   if (!dateTransaction || !type || !montant) {
     return res.status(400).json({ error: 'Validation error', message: 'dateTransaction, type, and montant are required' });
@@ -117,11 +118,11 @@ export async function createTransaction(req, res) {
 
     await client.query('BEGIN');
 
-    const transactionResult = await client.query(
-      `INSERT INTO transactions (immeuble_id, facture_id, date_transaction, type, montant, description, reference)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [immeubleId, factureId, dateTransaction, type, montant, description, reference]
-    );
+    const transactionResult = await pool.query(
+  `INSERT INTO transactions (immeuble_id, facture_id, date_transaction, type, montant, description, reference, tags, proprietaire_id)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+  [immeubleId, factureId, dateTransaction, type, montant, description, reference, JSON.stringify(tags), proprietaire_id]
+);
 
     const transaction = transactionResult.rows[0];
 

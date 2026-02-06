@@ -647,8 +647,8 @@ for (let y = currentYear - 5; y <= currentYear + 2; y++) {
             {/* ✅ NOUVEAU : Bouton créer exercice */}
             <button
               onClick={() => {
-                setNewExerciceYear(currentYear);
-                setShowCreateExerciceModal(true);
+                  setNewExerciceYear(selectedYear);  
+                  setShowCreateExerciceModal(true);
               }}
               className="flex items-center gap-1 px-2 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               title="Créer un nouvel exercice"

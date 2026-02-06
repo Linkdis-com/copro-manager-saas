@@ -16,6 +16,7 @@ import ProprietairesForm from '../Proprietaires/ProprietairesForm';
 import LocatairesForm from '../Locataires/LocatairesForm';
 import ComptabiliteImmeuble from '../Comptabilite/ComptabiliteImmeuble';
 import ImmeubleNavigationCards from '../../components/ImmeubleNavigationCards';
+import ImmeublesForm from './ImmeublesForm';
 
 
 function ImmeublesDetail() {
@@ -38,6 +39,7 @@ function ImmeublesDetail() {
   const [showProprietaireForm, setShowProprietaireForm] = useState(false);
   const [showLocataireForm, setShowLocataireForm] = useState(false);
   const [showCompteurForm, setShowCompteurForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -182,7 +184,8 @@ function ImmeublesDetail() {
             </div>
           </div>
           <button
-            onClick={() => navigate(`/immeubles/${id}/edit`)}
+            //onClick={() => navigate(`/immeubles/${id}/edit`)}
+            onClick={() => setShowEditForm(true)}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             title="Modifier"
           >
@@ -663,6 +666,16 @@ function ImmeublesDetail() {
           onClose={() => setShowLocataireForm(false)}
           onSuccess={() => {
             setShowLocataireForm(false);
+            loadData();
+          }}
+        />
+      )}
+      {showEditForm && (
+        <ImmeublesForm
+          immeuble={immeuble}
+          onClose={() => setShowEditForm(false)}
+          onSuccess={() => {
+            setShowEditForm(false);
             loadData();
           }}
         />

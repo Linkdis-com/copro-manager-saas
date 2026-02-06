@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Plus } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { 
@@ -20,7 +20,8 @@ import {
   X,
   Coins,
   User,
-  Lock
+  Lock,
+  Plus
 } from 'lucide-react';
 import { transactionsService, fournisseursService, immeublesService, proprietairesService } from '../../services/api';
 
@@ -56,7 +57,7 @@ function TransactionsImport() {
   const [stats, setStats] = useState(null);
   const [filterType, setFilterType] = useState('all');
   
-  // ✅ NOUVEAU: État exercice
+  // État exercice
   const [exerciceCourant, setExerciceCourant] = useState(null);
   const isExerciceCloture = exerciceCourant?.statut === 'cloture';
   
@@ -64,11 +65,21 @@ function TransactionsImport() {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [editForm, setEditForm] = useState({ 
     description: '', 
-    nom_contrepartie: '',  // ✅ AJOUTÉ
+    nom_contrepartie: '',
     tags: [], 
     proprietaire_id: null 
   });
   const [saving, setSaving] = useState(false);
+
+  // ✅ NOUVEAU: État pour ajout transaction manuelle
+  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
+  const [newTransaction, setNewTransaction] = useState({
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    type: 'charge',
+    montant: '',
+    proprietaire_id: null
+  });
 
   // Charger les données
   useEffect(() => {
@@ -84,14 +95,13 @@ function TransactionsImport() {
       const immeubleRes = await immeublesService.getOne(immeubleId);
       setImmeuble(immeubleRes.data.immeuble);
       
-      // ✅ NOUVEAU: Charger l'exercice en cours
+      // Charger l'exercice en cours
       try {
         const currentYear = new Date().getFullYear();
         const exercicesRes = await immeublesService.getExercices(immeubleId);
         const exercices = exercicesRes.data?.exercices || [];
         const exerciceActuel = exercices.find(e => e.annee === currentYear.toString()) || null;
         setExerciceCourant(exerciceActuel);
-        console.log('📅 Exercice courant:', exerciceActuel);
       } catch (e) {
         console.log('Pas d\'exercice courant');
       }
@@ -109,7 +119,6 @@ function TransactionsImport() {
         const categoriesRes = await fournisseursService.getCategories(immeubleId);
         setCategories(categoriesRes.data.categories || []);
       } catch (e) {
-        // Catégories par défaut
         setCategories([
           { value: 'eau', label: 'Eau', icon: '💧' },
           { value: 'electricite', label: 'Électricité', icon: '⚡' },
@@ -355,11 +364,7 @@ function TransactionsImport() {
       }
     };
     
-    if (file.name.endsWith('.csv')) {
-      reader.readAsBinaryString(file);
-    } else {
-      reader.readAsBinaryString(file);
-    }
+    reader.readAsBinaryString(file);
   };
 
   const convertDateToISO = (dateStr) => {
@@ -436,7 +441,7 @@ function TransactionsImport() {
         return;
       }
       
-      await transactionsService.importBulk(immeubleId, { transactions: payload });
+      await transactionsService.import(immeubleId, payload);
       
       setSuccess(`${payload.length} transactions importées avec succès`);
       setImportData([]);
@@ -479,7 +484,7 @@ function TransactionsImport() {
     setEditingTransaction(transaction);
     setEditForm({
       description: transaction.description || transaction.communication || '',
-      nom_contrepartie: transaction.nom_contrepartie || '',  // ✅ AJOUTÉ
+      nom_contrepartie: transaction.nom_contrepartie || '',
       tags: transaction.tags || [],
       proprietaire_id: transaction.proprietaire_id || null
     });
@@ -490,14 +495,12 @@ function TransactionsImport() {
     
     setSaving(true);
     try {
-      const response = await transactionsService.update(immeubleId, editingTransaction.id, {
+      await transactionsService.update(immeubleId, editingTransaction.id, {
         description: editForm.description,
-        nom_contrepartie: editForm.nom_contrepartie,  // ✅ AJOUTÉ
+        nom_contrepartie: editForm.nom_contrepartie,
         tags: editForm.tags,
         proprietaire_id: editForm.proprietaire_id
       });
-      
-      console.log('✅ Transaction updated:', response.data);
       
       setEditingTransaction(null);
       setSuccess('Transaction mise à jour');
@@ -505,6 +508,41 @@ function TransactionsImport() {
     } catch (err) {
       console.error('Error updating transaction:', err);
       setError('Erreur lors de la mise à jour');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ✅ NOUVEAU: Créer une transaction manuelle
+  const handleCreateTransaction = async () => {
+    if (!newTransaction.description || !newTransaction.montant) return;
+    
+    setSaving(true);
+    setError(null);
+    try {
+      await transactionsService.create(immeubleId, {
+        dateTransaction: newTransaction.date,
+        description: newTransaction.description,
+        type: newTransaction.type === 'depot' ? 'versement' : newTransaction.type,
+        montant: newTransaction.type === 'depot' 
+          ? Math.abs(parseFloat(newTransaction.montant))
+          : -Math.abs(parseFloat(newTransaction.montant)),
+        proprietaire_id: newTransaction.proprietaire_id
+      });
+      
+      setShowAddTransactionModal(false);
+      setNewTransaction({
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        type: 'charge',
+        montant: '',
+        proprietaire_id: null
+      });
+      setSuccess('Transaction créée avec succès');
+      await loadData();
+    } catch (err) {
+      console.error('Error creating transaction:', err);
+      setError(err.response?.data?.message || 'Erreur lors de la création');
     } finally {
       setSaving(false);
     }
@@ -526,7 +564,7 @@ function TransactionsImport() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header avec boutons */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/immeubles/${immeubleId}`)}
@@ -545,10 +583,20 @@ function TransactionsImport() {
           </div>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* ✅ NOUVEAU: Bouton Ajouter manuellement */}
+          {!isExerciceCloture && (
+            <button
+              onClick={() => setShowAddTransactionModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter manuellement
+            </button>
+          )}
           <button
             onClick={() => navigate(`/immeubles/${immeubleId}`)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
           >
             <Coins className="w-4 h-4" />
             Voir la comptabilité
@@ -570,7 +618,7 @@ function TransactionsImport() {
         </div>
       </div>
 
-      {/* ✅ ALERTE EXERCICE CLÔTURÉ */}
+      {/* ALERTE EXERCICE CLÔTURÉ */}
       {isExerciceCloture && (
         <div className="flex items-center gap-2 p-4 bg-orange-50 text-orange-700 rounded-lg border border-orange-200">
           <Lock className="w-5 h-5 flex-shrink-0" />
@@ -771,22 +819,29 @@ function TransactionsImport() {
       {/* Liste des transactions existantes */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">
-            Transactions ({filteredTransactions.length})
-          </h2>
-          
-          <div className="flex gap-2">
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="all">Tous</option>
-              <option value="charge">Dépenses</option>
-              <option value="versement">Recettes</option>
-            </select>
-          </div>
-        </div>
+  <h2 className="text-lg font-semibold">
+    Transactions ({filteredTransactions.length})
+  </h2>
+  
+  <div className="flex gap-2">
+    <select
+      value={filterType}
+      onChange={(e) => setFilterType(e.target.value)}
+      className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+    >
+      <option value="all">Tous</option>
+      <option value="charge">Dépenses</option>
+      <option value="versement">Recettes</option>
+    </select>
+    <button
+      onClick={() => setShowAddTransactionModal(true)}
+      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+    >
+      <Plus className="h-4 w-4" />
+      <span className="hidden sm:inline">Ajouter</span>
+    </button>
+  </div>
+</div>
         
         {filteredTransactions.length === 0 ? (
           <p className="text-gray-500 text-center py-8">
@@ -833,13 +888,13 @@ function TransactionsImport() {
                     <td className={`px-4 py-3 text-sm text-right font-medium ${
                       t.type === 'charge' ? 'text-red-600' : 'text-green-600'
                     }`}>
-                      {t.type === 'charge' ? '-' : '+'}{parseFloat(t.montant).toFixed(2)} €
+                      {t.type === 'charge' ? '-' : '+'}{Math.abs(parseFloat(t.montant)).toFixed(2)} €
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleEdit(t)}
-                          disabled={isExerciceCloture}  // ✅ BLOQUÉ SI CLÔTURÉ
+                          disabled={isExerciceCloture}
                           className="p-1 text-orange-500 hover:bg-orange-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           title={isExerciceCloture ? 'Exercice clôturé' : 'Éditer'}
                         >
@@ -856,7 +911,7 @@ function TransactionsImport() {
                               }
                             }
                           }}
-                          disabled={isExerciceCloture}  // ✅ BLOQUÉ SI CLÔTURÉ
+                          disabled={isExerciceCloture}
                           className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           title={isExerciceCloture ? 'Exercice clôturé' : 'Supprimer'}
                         >
@@ -878,7 +933,132 @@ function TransactionsImport() {
         )}
       </div>
 
-      {/* ✅ MODAL ÉDITION COMPLET */}
+      {/* ==================== MODAL AJOUTER TRANSACTION ==================== */}
+      {showAddTransactionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-primary-600" />
+                  Ajouter une transaction
+                </h2>
+                <button
+                  onClick={() => setShowAddTransactionModal(false)}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={newTransaction.date}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                {/* Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type *
+                  </label>
+                  <select
+                    value={newTransaction.type}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="charge">Charge</option>
+                    <option value="depot">Dépôt</option>
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description *
+                  </label>
+                  <textarea
+                    value={newTransaction.description}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                    placeholder="Ex: Réparation ascenseur, Provision trimestrielle..."
+                    rows={3}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                {/* Montant */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Montant (€) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newTransaction.montant}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, montant: e.target.value })}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                {/* Propriétaire (si dépôt) */}
+                {newTransaction.type === 'depot' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Propriétaire
+                    </label>
+                    <select
+                      value={newTransaction.proprietaire_id || ''}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, proprietaire_id: e.target.value || null })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">-- Non attribué --</option>
+                      {proprietaires.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.prenom} {p.nom}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optionnel - Permet d'identifier le propriétaire qui a effectué le dépôt
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={handleCreateTransaction}
+                  disabled={saving || !newTransaction.description || !newTransaction.montant}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Enregistrer
+                </button>
+                <button
+                  onClick={() => setShowAddTransactionModal(false)}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL ÉDITION ==================== */}
       {editingTransaction && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -904,7 +1084,7 @@ function TransactionsImport() {
                 />
               </div>
 
-              {/* ✅ CONTREPARTIE */}
+              {/* Contrepartie */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contrepartie</label>
                 <input
@@ -916,7 +1096,7 @@ function TransactionsImport() {
                 />
               </div>
 
-              {/* ✅ PROPRIETAIRE (pour dépôts uniquement) */}
+              {/* Proprietaire (pour dépôts uniquement) */}
               {getDisplayType(editingTransaction) === 'depot' && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -927,7 +1107,7 @@ function TransactionsImport() {
                     value={editForm.proprietaire_id || ''}
                     onChange={(e) => setEditForm({ 
                       ...editForm, 
-                      proprietaire_id: e.target.value || null  // ✅ PAS DE parseInt()
+                      proprietaire_id: e.target.value || null
                     })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
                   >
@@ -944,7 +1124,7 @@ function TransactionsImport() {
                 </div>
               )}
 
-              {/* ✅ TAGS */}
+              {/* Tags */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
                 <div className="border rounded-lg p-2 max-h-48 overflow-y-auto space-y-1">
