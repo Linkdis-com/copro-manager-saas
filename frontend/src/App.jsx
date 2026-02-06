@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 import EauDashboard from './components/Eau/pages/EauDashboard';
 import ConfigurationImmeuble from './components/Eau/pages/ConfigurationImmeuble';
 import GestionCompteurs from './components/Eau/pages/GestionCompteurs';
@@ -29,13 +30,7 @@ const ProprietairesForm = lazy(() => import('./pages/Proprietaires/Proprietaires
 const LocatairesList = lazy(() => import('./pages/Locataires/LocatairesList'));
 const LocataireDetail = lazy(() => import('./pages/Locataires/LocataireDetail'));
 const LocatairesForm = lazy(() => import('./pages/Locataires/LocatairesForm'));
-
-// Décomptes Eau
-//const DecomptesDashboard = lazy(() => import('./components/DecompteEau/DecomptesDashboard'));
-//const DecompteCreate = lazy(() => import('./components/DecompteEau/DecompteCreate'));
-//const DecompteEauDetail = lazy(() => import('./components/DecompteEau/DecompteEauDetail'));
-//const CompteursImmeuble = lazy(() => import('./components/DecompteEau/CompteursImmeuble'));
-//const ImmeubleDecomptes = lazy(() => import('./components/DecompteEau/ImmeubleDecomptes'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Comptabilité
 const DecomptesAnnuels = lazy(() => import('./pages/Comptabilite/DecomptesAnnuels'));
@@ -47,51 +42,51 @@ const ExercicesClotures = lazy(() => import('./pages/Exercices/ExercicesClotures
 
 function App() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="settings" element={<Settings />} />
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           
-          <Route path="immeubles" element={<ImmeublesList />} />
-          <Route path="immeubles/:id" element={<ImmeublesDetail />} />
-          <Route path="immeubles/:immeubleId/transactions" element={<TransactionsImport />} />
-          <Route path="immeubles/:immeubleId/fournisseurs" element={<FournisseursPage />} />
+          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="settings" element={<Settings />} />
+            
+            <Route path="immeubles" element={<ImmeublesList />} />
+            <Route path="immeubles/:id" element={<ImmeublesDetail />} />
+            <Route path="immeubles/:immeubleId/transactions" element={<TransactionsImport />} />
+            <Route path="immeubles/:immeubleId/fournisseurs" element={<FournisseursPage />} />
+            
+            {/* COMPTABILITÉ */}
+            <Route path="immeubles/:immeubleId/decomptes" element={<DecomptesAnnuels />} />
+            <Route path="immeubles/:immeubleId/exercices" element={<ExercicesComptables />} />
+            <Route path="immeubles/:immeubleId/exercices/:exerciceId/decomptes" element={<ExercicesComptables />} />
+            <Route path="immeubles/:immeubleId/exercices/:exerciceId/proprietaires/:proprietaireId/decompte" element={<DecompteAnnuelRAN />} />
+            
+            <Route path="proprietaires" element={<ProprietairesList />} />
+            <Route path="immeubles/:id/proprietaires/:propId" element={<ProprietaireDetail />} />
+            <Route path="immeubles/:id/proprietaires/:propId/edit" element={<ProprietairesForm />} />
+            
+            <Route path="locataires" element={<LocatairesList />} />
+            <Route path="immeubles/:id/locataires/:locId" element={<LocataireDetail />} />
+            <Route path="immeubles/:id/locataires/:locId/edit" element={<LocatairesForm />} />
+            
+            {/* DÉCOMPTES EAU */}
+            <Route path="/immeubles/:immeubleId/eau" element={<EauDashboard />} />
+            <Route path="/immeubles/:immeubleId/eau/configuration" element={<ConfigurationImmeuble />} />
+            <Route path="/immeubles/:immeubleId/eau/compteurs" element={<GestionCompteurs />} />
+            <Route path="/immeubles/:immeubleId/eau/releves" element={<SaisieReleves />} />
+            <Route path="/immeubles/:immeubleId/eau/decomptes" element={<ResultatsDecompte />} />
+            
+            <Route path="exercices-clotures" element={<ExercicesClotures />} />
+          </Route>
           
-          {/* COMPTABILITÉ - Routes existantes */}
-          <Route path="immeubles/:immeubleId/decomptes" element={<DecomptesAnnuels />} />
-          <Route path="immeubles/:immeubleId/exercices" element={<ExercicesComptables />} />
-          <Route path="immeubles/:immeubleId/exercices/:exerciceId/decomptes" element={<ExercicesComptables />} />
-          <Route path="immeubles/:immeubleId/exercices/:exerciceId/proprietaires/:proprietaireId/decompte" element={<DecompteAnnuelRAN />} />
-          
-          <Route path="proprietaires" element={<ProprietairesList />} />
-          <Route path="immeubles/:id/proprietaires/:propId" element={<ProprietaireDetail />} />
-          <Route path="immeubles/:id/proprietaires/:propId/edit" element={<ProprietairesForm />} />
-          
-          <Route path="locataires" element={<LocatairesList />} />
-          <Route path="immeubles/:id/locataires/:locId" element={<LocataireDetail />} />
-          <Route path="immeubles/:id/locataires/:locId/edit" element={<LocatairesForm />} />
-          
-          {/* DÉCOMPTES EAU - Dashboard global */}
-        <Route path="/immeubles/:immeubleId/eau" element={<EauDashboard />} />
-        <Route path="/immeubles/:immeubleId/eau/configuration" element={<ConfigurationImmeuble />} />
-        <Route path="/immeubles/:immeubleId/eau/compteurs" element={<GestionCompteurs />} />
-        <Route path="/immeubles/:immeubleId/eau/releves" element={<SaisieReleves />} />
-        <Route path="/immeubles/:immeubleId/eau/decomptes" element={<ResultatsDecompte />} />
-
-          
-          {/* COMPTEURS - Configuration */}
-          
-          <Route path="exercices-clotures" element={<ExercicesClotures />} />
-        </Route>
-        
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Suspense>
+          {/* 404 - Route catch-all */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
