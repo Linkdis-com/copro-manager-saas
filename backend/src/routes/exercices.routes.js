@@ -8,7 +8,9 @@ import {
   createAppelFonds,
   enregistrerPaiementAppel,
   cloturerExercice,
-  getDecompteAnnuel
+  getDecompteAnnuel,
+  recalculerRAN,
+ getBilanCharges
 } from '../controllers/exercices.controller.js';
 
 const router = express.Router({ mergeParams: true });
@@ -39,6 +41,9 @@ router.post('/:id/cloturer', cloturerExercice);
 // ============================================
 // ROUTES SOLDES PROPRIÉTAIRES
 // ============================================
+// // GET /api/v1/immeubles/:immeubleId/exercices/:exerciceId/bilan-charges
+// // Bilan des charges récurrentes par type de fonds
+router.get('/:exerciceId/bilan-charges', getBilanCharges);
 
 // GET /api/v1/immeubles/:immeubleId/exercices/:exerciceId/proprietaires/:proprietaireId/solde
 // Situation financière d'un propriétaire pour un exercice

@@ -216,6 +216,8 @@ export const exercicesService = {
     api.post(`/immeubles/${immeubleId}/exercices/${exerciceId}/appels`, data),
   enregistrerPaiement: (immeubleId, appelId, proprietaireId, data) => 
     api.post(`/immeubles/${immeubleId}/exercices/appels/${appelId}/proprietaires/${proprietaireId}/paiement`, data),
+  getBilanCharges: (immeubleId, exerciceId) =>
+    api.get(`/immeubles/${immeubleId}/exercices/${exerciceId}/bilan-charges`),
 };
 
 export const subscriptionsService = {
