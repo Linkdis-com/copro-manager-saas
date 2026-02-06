@@ -7,15 +7,27 @@ import { seedTarifsDefaut } from '../migrations/seed-tarifs-defaut.js';
 const router = express.Router();
 
 
-
 router.post('/migration-appels-charges', async (req, res) => {
   try {
+    // 1. Vérifier le type de exercices.id
+    const typeCheck = await pool.query(`
+      SELECT data_type FROM information_schema.columns 
+      WHERE table_name = 'exercices' AND column_name = 'id'
+    `);
+    const exerciceIdType = typeCheck.rows[0]?.data_type || 'unknown';
+
+    // 2. Drop si existe (table potentiellement corrompue)
+    await pool.query('DROP TABLE IF EXISTS appels_charges CASCADE');
+
+    // 3. Recréer avec le bon type
+    const exerciceColType = exerciceIdType === 'uuid' ? 'UUID' : 'INTEGER';
+    
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS appels_charges (
+      CREATE TABLE appels_charges (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         charge_recurrente_id UUID NOT NULL REFERENCES charges_recurrentes(id) ON DELETE CASCADE,
         proprietaire_id UUID NOT NULL REFERENCES proprietaires(id) ON DELETE CASCADE,
-        exercice_id UUID REFERENCES exercices(id) ON DELETE SET NULL,
+        exercice_id ${exerciceColType} REFERENCES exercices(id) ON DELETE SET NULL,
         periode_debut DATE NOT NULL,
         periode_fin DATE NOT NULL,
         montant_appele DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -27,13 +39,18 @@ router.post('/migration-appels-charges', async (req, res) => {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-      CREATE INDEX IF NOT EXISTS idx_appels_charges_charge ON appels_charges(charge_recurrente_id);
-      CREATE INDEX IF NOT EXISTS idx_appels_charges_proprio ON appels_charges(proprietaire_id);
-      CREATE INDEX IF NOT EXISTS idx_appels_charges_exercice ON appels_charges(exercice_id);
-      CREATE INDEX IF NOT EXISTS idx_appels_charges_periode ON appels_charges(periode_debut, periode_fin);
-      CREATE INDEX IF NOT EXISTS idx_appels_charges_statut ON appels_charges(statut);
+      CREATE INDEX idx_appels_charges_charge ON appels_charges(charge_recurrente_id);
+      CREATE INDEX idx_appels_charges_proprio ON appels_charges(proprietaire_id);
+      CREATE INDEX idx_appels_charges_exercice ON appels_charges(exercice_id);
+      CREATE INDEX idx_appels_charges_periode ON appels_charges(periode_debut, periode_fin);
+      CREATE INDEX idx_appels_charges_statut ON appels_charges(statut);
     `);
-    res.json({ success: true, message: 'Table appels_charges créée' });
+
+    res.json({ 
+      success: true, 
+      message: 'Table appels_charges créée',
+      exerciceIdType: exerciceColType
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

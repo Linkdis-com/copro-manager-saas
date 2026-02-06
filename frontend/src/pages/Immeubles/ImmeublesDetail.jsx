@@ -1,4 +1,4 @@
-import { useState, useEffect, Coins } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   immeublesService, 
@@ -10,7 +10,7 @@ import {
 import { 
   ArrowLeft, Building2, Users, UserCircle, AlertCircle,
   Edit2, Plus, Droplets, Grid3x3, List,
-  Tag, Wallet, ChevronRight, MapPin, AlertTriangle
+  Tag, Wallet, ChevronRight, MapPin, AlertTriangle, Coins
 } from 'lucide-react';
 import ProprietairesForm from '../Proprietaires/ProprietairesForm';
 import LocatairesForm from '../Locataires/LocatairesForm';
