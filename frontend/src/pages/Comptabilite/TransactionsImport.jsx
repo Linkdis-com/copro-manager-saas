@@ -21,7 +21,8 @@ import {
   Coins,
   User,
   Lock,
-  Plus
+  Plus,
+  Clipboard
 } from 'lucide-react';
 import { transactionsService, fournisseursService, immeublesService, proprietairesService } from '../../services/api';
 
@@ -56,6 +57,7 @@ function TransactionsImport() {
   const [dragActive, setDragActive] = useState(false);
   const [stats, setStats] = useState(null);
   const [filterType, setFilterType] = useState('all');
+  const [pasteData, setPasteData] = useState('');
   
   // État exercice
   const [exerciceCourant, setExerciceCourant] = useState(null);
@@ -71,7 +73,7 @@ function TransactionsImport() {
   });
   const [saving, setSaving] = useState(false);
 
-  // ✅ NOUVEAU: État pour ajout transaction manuelle
+  // État pour ajout transaction manuelle
   const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
   const [newTransaction, setNewTransaction] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -147,6 +149,96 @@ function TransactionsImport() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ============================================
+  // CORRECTION COMPLÈTE - convertDateToISO
+  // Gère tous les formats de dates y compris YY
+  // ============================================
+  const convertDateToISO = (dateStr) => {
+    if (!dateStr) return null;
+    
+    // Nettoyer la chaîne
+    const cleanDate = dateStr.toString().trim();
+    if (!cleanDate) return null;
+    
+    // Déjà au format ISO ?
+    if (/^\d{4}-\d{2}-\d{2}/.test(cleanDate)) {
+      return cleanDate.substring(0, 10);
+    }
+    
+    // Parser avec délimiteurs multiples
+    const parts = cleanDate.split(/[-\/\s.]/);
+    if (parts.length < 3) return null;
+    
+    let day, month, year;
+    
+    // Déterminer le format selon la longueur des parties
+    if (parts[0].length === 4) {
+      // Format YYYY-MM-DD ou YYYY/MM/DD
+      [year, month, day] = parts;
+    } 
+    else if (parts[2].length === 4) {
+      // Format DD-MM-YYYY ou DD/MM/YYYY
+      [day, month, year] = parts;
+    }
+    else if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 2) {
+      // Ambiguë : DD/MM/YY vs MM/DD/YY
+      // Heuristique : si parts[0] > 12, c'est DD/MM/YY, sinon MM/DD/YY
+      const firstNum = parseInt(parts[0]);
+      const secondNum = parseInt(parts[1]);
+      
+      if (firstNum > 12) {
+        // Forcément DD/MM/YY car premiers chiffres > 12
+        [day, month, year] = parts;
+      } else if (secondNum > 12) {
+        // Forcément MM/DD/YY car seconds chiffres > 12
+        [month, day, year] = parts;
+      } else {
+        // Ambiguë... on teste selon tes données
+        // Par défaut DD/MM/YY pour l'Europe
+        [day, month, year] = parts;
+      }
+    }
+    else {
+      // Format par défaut DD-MM-YY
+      [day, month, year] = parts;
+    }
+    
+    // Convertir en nombres
+    const dayNum = parseInt(day);
+    const monthNum = parseInt(month);
+    let yearNum = parseInt(year);
+    
+    // Validation de base
+    if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) return null;
+    
+    // Gérer les années à 2 chiffres (YY → 20YY)
+    if (yearNum < 100) {
+      // Heuristique : 00-30 = 2000-2030, 31-99 = 1931-1999
+      yearNum = yearNum <= 30 ? 2000 + yearNum : 1900 + yearNum;
+    }
+    
+    // Validation des valeurs
+    if (dayNum < 1 || dayNum > 31) return null;
+    if (monthNum < 1 || monthNum > 12) return null;
+    if (yearNum < 1900 || yearNum > 2100) return null;
+    
+    // Créer la date ISO
+    const isoDate = `${yearNum}-${monthNum.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+    
+    // Vérification finale avec JavaScript Date
+    const testDate = new Date(isoDate);
+    if (isNaN(testDate.getTime())) return null;
+    
+    // Vérifier que la date n'a pas été auto-corrigée (ex: 31/02 → 03/03)
+    if (testDate.getFullYear() !== yearNum || 
+        testDate.getMonth() + 1 !== monthNum || 
+        testDate.getDate() !== dayNum) {
+      return null;
+    }
+    
+    return isoDate;
   };
 
   // ============ PARSING CSV MULTI-BANQUES ============
@@ -230,6 +322,98 @@ function TransactionsImport() {
     }
     
     return transactions;
+  };
+
+  // ============ PARSING DEPUIS COPIER-COLLER ============
+  
+  const parsePastedData = () => {
+    if (!pasteData.trim()) {
+      setError('Aucune donnée collée');
+      return;
+    }
+
+    try {
+      // Split par lignes
+      const lines = pasteData.trim().split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        setError('Aucune donnée détectée');
+        return;
+      }
+
+      const parsedTransactions = [];
+      
+      lines.forEach((line, index) => {
+        // Skip header si détecté
+        if (index === 0 && line.toLowerCase().includes('date')) {
+          return;
+        }
+
+        // Split par tabulation (copie depuis Excel)
+        const columns = line.split('\t');
+        
+        if (columns.length < 3) return;
+
+        const [dateStr, descOrAmount, contrepartieOrDesc, ...rest] = columns;
+        
+        // Parser la date
+        const dateISO = convertDateToISO(dateStr);
+        
+        // Détecter le montant (peut être dans différentes colonnes)
+        let montant = null;
+        let description = '';
+        let contrepartie = '';
+
+        // Vérifier si la 2ème colonne est un montant
+        const testAmount = descOrAmount?.replace(/[,\s€]/g, '');
+        if (!isNaN(parseFloat(testAmount))) {
+          montant = parseFloat(testAmount);
+          description = contrepartieOrDesc || '';
+          contrepartie = rest[0] || '';
+        } else {
+          description = descOrAmount;
+          contrepartie = contrepartieOrDesc || '';
+          // Chercher le montant dans les colonnes restantes
+          for (let col of rest) {
+            const parsed = parseFloat(col.replace(/[,\s€]/g, ''));
+            if (!isNaN(parsed)) {
+              montant = parsed;
+              break;
+            }
+          }
+        }
+
+        const isValidDate = dateISO !== null;
+        const isValidMontant = montant !== null && !isNaN(montant);
+        
+        const isDuplicate = transactions.some(existing => 
+          existing.montant === montant.toString() &&
+          existing.date_comptabilisation === dateISO
+        );
+
+        parsedTransactions.push({
+          dateComptabilisation: dateStr,
+          dateISO: dateISO,
+          nomContrepartie: contrepartie,
+          montant: montant?.toString() || '0',
+          montantParsed: montant,
+          communication: description,
+          valid: isValidDate && isValidMontant && !isDuplicate,
+          error: isDuplicate ? 'Doublon' : 
+                 (!isValidDate ? 'Date invalide' : 
+                 (!isValidMontant ? 'Montant invalide' : null)),
+          rowNum: index + 1
+        });
+      });
+
+      setImportData(parsedTransactions);
+      setSuccess(`${parsedTransactions.filter(t => t.valid).length} transactions valides détectées sur ${parsedTransactions.length}`);
+      setPasteData(''); // Clear après parsing
+      
+    } catch (err) {
+      console.error('Parse error:', err);
+      setError('Erreur lors du parsing des données collées');
+    }
   };
 
   const extractNomFromTransaction = (transaction) => {
@@ -356,7 +540,7 @@ function TransactionsImport() {
         });
         
         setImportData(enhanced);
-        setSuccess(`${enhanced.length} lignes détectées`);
+        setSuccess(`${enhanced.filter(t => t.valid).length} lignes valides détectées sur ${enhanced.length}`);
         
       } catch (err) {
         console.error('Parse error:', err);
@@ -365,40 +549,6 @@ function TransactionsImport() {
     };
     
     reader.readAsBinaryString(file);
-  };
-
-  const convertDateToISO = (dateStr) => {
-    if (!dateStr) return null;
-    
-    const cleanDate = dateStr.toString().trim();
-    if (!cleanDate) return null;
-    
-    const parts = cleanDate.split(/[-\/\s.]/);
-    if (parts.length < 3) return null;
-    
-    let day, month, year;
-    
-    if (parts[0].length === 4) {
-      [year, month, day] = parts;
-    } 
-    else if (parts[2].length === 4) {
-      [day, month, year] = parts;
-    } 
-    else {
-      [day, month, year] = parts;
-      year = year.length === 2 ? '20' + year : year;
-    }
-    
-    const dayNum = parseInt(day);
-    const monthNum = parseInt(month);
-    const yearNum = parseInt(year);
-    
-    if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) return null;
-    if (dayNum < 1 || dayNum > 31) return null;
-    if (monthNum < 1 || monthNum > 12) return null;
-    if (yearNum < 2000 || yearNum > 2100) return null;
-    
-    return `${yearNum}-${monthNum.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
   };
 
   const handleImport = async () => {
@@ -413,28 +563,30 @@ function TransactionsImport() {
     setSuccess(null);
     
     try {
-      const payload = validRows.map(row => {
-        const dateTransaction = convertDateToISO(row.dateComptabilisation);
-        
-        if (!dateTransaction) {
-          console.error('Date invalide pour la ligne:', row);
-          return null;
-        }
-        
-        return {
-          date_transaction: dateTransaction,
-          date_comptabilisation: dateTransaction,
-          montant: row.montantParsed,
-          type: row.montantParsed < 0 ? 'charge' : 'versement',
-          description: row.communication || row.nomContrepartie || '',
-          communication: row.communication,
-          nom_contrepartie: row.nomContrepartie,
-          compte_contrepartie: row.compteContrepartie,
-          reference: row.reference,
-          fournisseur_id: row.fournisseurId || null,
-          categorie: row.categorieId || null
-        };
-      }).filter(Boolean);
+      const payload = validRows
+        .map(row => {
+          const dateTransaction = convertDateToISO(row.dateComptabilisation);
+          
+          if (!dateTransaction) {
+            console.error('Date invalide pour la ligne:', row);
+            return null;
+          }
+          
+          return {
+            date_transaction: dateTransaction,
+            date_comptabilisation: dateTransaction,
+            montant: row.montantParsed,
+            type: row.montantParsed < 0 ? 'charge' : 'versement',
+            description: row.communication || row.nomContrepartie || '',
+            communication: row.communication,
+            nom_contrepartie: row.nomContrepartie,
+            compte_contrepartie: row.compteContrepartie,
+            reference: row.reference,
+            fournisseur_id: row.fournisseurId || null,
+            categorie: row.categorieId || null
+          };
+        })
+        .filter(Boolean); // Enlever les null
       
       if (payload.length === 0) {
         setError('Aucune transaction avec date valide');
@@ -513,7 +665,7 @@ function TransactionsImport() {
     }
   };
 
-  // ✅ NOUVEAU: Créer une transaction manuelle
+  // Créer une transaction manuelle
   const handleCreateTransaction = async () => {
     if (!newTransaction.description || !newTransaction.montant) return;
     
@@ -584,7 +736,6 @@ function TransactionsImport() {
         </div>
         
         <div className="flex flex-wrap gap-2">
-          {/* ✅ NOUVEAU: Bouton Ajouter manuellement */}
           {!isExerciceCloture && (
             <button
               onClick={() => setShowAddTransactionModal(true)}
@@ -690,9 +841,55 @@ function TransactionsImport() {
         </h2>
         
         <p className="text-sm text-gray-600 mb-4">
-          Formats supportés : CSV Belfius, Excel (.xlsx), CSV générique
+          Formats supportés : CSV Belfius, Excel (.xlsx), CSV générique, ou copier-coller depuis Excel
         </p>
+
+        {/* ZONE COPIER-COLLER */}
+        <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Clipboard className="w-5 h-5 text-blue-600" />
+            <h3 className="font-medium text-blue-900">Copier-coller depuis Excel</h3>
+          </div>
+          
+          {/* Guide des colonnes */}
+          <div className="mb-3 p-3 bg-white rounded border border-blue-200">
+            <p className="text-xs text-gray-600 mb-2 font-medium">📋 Format attendu (colonnes) :</p>
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono">Date</div>
+              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono">Montant</div>
+              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono">Description</div>
+              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono">Contrepartie</div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 Exemple : <code className="bg-gray-100 px-1">12/16/26  -150.50  Facture eau  SWDE</code>
+            </p>
+          </div>
+
+          <textarea
+            value={pasteData}
+            onChange={(e) => setPasteData(e.target.value)}
+            placeholder="Sélectionnez vos lignes dans Excel (Ctrl+C), puis collez ici (Ctrl+V)..."
+            className="w-full min-h-[120px] px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+          />
+          
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={parsePastedData}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Clipboard className="w-4 h-4" />
+              Analyser les données
+            </button>
+            <button
+              onClick={() => setPasteData('')}
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            >
+              Effacer
+            </button>
+          </div>
+        </div>
         
+        {/* ZONE DRAG & DROP FICHIERS */}
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
             dragActive 
@@ -706,7 +903,7 @@ function TransactionsImport() {
         >
           <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <p className="text-gray-700 font-medium mb-1">
-            Déposez votre fichier ici ou cliquez pour sélectionner
+            Ou déposez votre fichier ici / cliquez pour sélectionner
           </p>
           <p className="text-sm text-gray-500">
             CSV, Excel (.xlsx)
@@ -819,29 +1016,29 @@ function TransactionsImport() {
       {/* Liste des transactions existantes */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-  <h2 className="text-lg font-semibold">
-    Transactions ({filteredTransactions.length})
-  </h2>
-  
-  <div className="flex gap-2">
-    <select
-      value={filterType}
-      onChange={(e) => setFilterType(e.target.value)}
-      className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
-    >
-      <option value="all">Tous</option>
-      <option value="charge">Dépenses</option>
-      <option value="versement">Recettes</option>
-    </select>
-    <button
-      onClick={() => setShowAddTransactionModal(true)}
-      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-    >
-      <Plus className="h-4 w-4" />
-      <span className="hidden sm:inline">Ajouter</span>
-    </button>
-  </div>
-</div>
+          <h2 className="text-lg font-semibold">
+            Transactions ({filteredTransactions.length})
+          </h2>
+          
+          <div className="flex gap-2">
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+            >
+              <option value="all">Tous</option>
+              <option value="charge">Dépenses</option>
+              <option value="versement">Recettes</option>
+            </select>
+            <button
+              onClick={() => setShowAddTransactionModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Ajouter</span>
+            </button>
+          </div>
+        </div>
         
         {filteredTransactions.length === 0 ? (
           <p className="text-gray-500 text-center py-8">
